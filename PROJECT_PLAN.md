@@ -44,7 +44,7 @@ The Georgian market has fragmented demand for 1-on-1 expert consultations (legal
 | ORM | Prisma 5 | Type-safe queries, migrations, schema-as-source-of-truth |
 | Auth | Auth.js (NextAuth v5) | Built for Next.js App Router; Google OAuth + email/password |
 | Session storage | Database sessions (not JWT) | Allows instant logout / session revocation |
-| Video | LiveKit Cloud (MVP) | Free tier 50h/mo; self-hostable later; SDK is mature; supports screen share + data channels for in-call chat |
+| Video | Daily.co (MVP) | Free tier 10,000 participant-minutes/mo (≈83 1-on-1 hour sessions); per-minute pricing ~2× cheaper than LiveKit Cloud; clean React SDK; built-in screen share + in-call data |
 | Payments | TBC E-Commerce API + BOG iPay | Both major Georgian acquirers; required for market coverage |
 | Email | Resend | Simple DX; deliverability is good for Georgian inboxes; React Email templates |
 | File storage | Cloudflare R2 (S3-compatible) | ~10× cheaper than S3 egress; profile photos, certificates, intro videos, in-call file shares |
@@ -64,9 +64,11 @@ The Georgian market has fragmented demand for 1-on-1 expert consultations (legal
 | Supabase | Neon is sharper for serverless Postgres; we don't need Supabase's auth/storage bundle (we have Auth.js + R2). |
 | Drizzle ORM | Prisma's DX is better for a solo team; Drizzle's edge-runtime advantage doesn't apply if we're not on Cloudflare. |
 | tRPC | Server Actions + Route Handlers cover our needs; tRPC's extra layer doesn't justify its complexity here. |
-| Daily.co / Twilio Video | LiveKit Cloud is cheaper at our scale and self-hostable for v2. Both are fine alternatives if LiveKit hits limits. |
+| LiveKit Cloud | ~2× more expensive per participant-minute than Daily.co and free tier is half the size (5k vs 10k min/mo). Self-hosting is appealing long-term but the ops cost (Jibri, Coturn, scaling) doesn't pay off at MVP volume. Re-evaluate in v2 if Daily egress costs spike. |
+| Twilio Video | Premium pricing without a matching feature advantage for our use case. |
 | Stripe Connect | Doesn't help us — we need local Georgian acquirers, not international cards. |
-| Custom WebRTC | 4–6 weeks of engineering just for signaling/TURN/recording. LiveKit gives us 95% of that for free. |
+| Custom WebRTC | 4–6 weeks of engineering just for signaling/TURN/recording. Daily.co gives us 95% of that out of the box. |
+| Jitsi (self-hosted) | Cheapest long-run, but Phase 5 isn't the time to take on infra ops. Migration option for v2 if margins demand it. |
 
 ---
 
@@ -602,7 +604,7 @@ Each integration test spins up a fresh Postgres via Testcontainers — no shared
 - Tutor onboarding wizard → submit for approval
 - Admin approves tutor → tutor appears in listings
 - Cancel booking → refund flow
-- Video session join (mocked LiveKit room) → both parties present → end call → review
+- Video session join (mocked Daily.co room) → both parties present → end call → review
 
 **Runs:** every PR + nightly cron. Test data seeded via Prisma + cleaned after each run.
 
@@ -665,8 +667,8 @@ Each phase ends with a structured manual walkthrough — see "Phase gate" subsec
 
 #### D. Real video session testing
 
-- LiveKit cannot be fully mocked for production confidence.
-- Phase 5 gate: 2 real humans join a real LiveKit room from different networks (one Wi-Fi, one mobile data). All controls tested. Disconnect/reconnect tested.
+- Daily.co cannot be fully mocked for production confidence.
+- Phase 5 gate: 2 real humans join a real Daily.co room from different networks (one Wi-Fi, one mobile data). All controls tested. Disconnect/reconnect tested.
 
 #### E. Accessibility manual audit
 
@@ -762,7 +764,7 @@ Smoke test on staging (T8.7)
 - **≤ 200 bookings / month**
 - **≤ 50 concurrent video sessions** (peak)
 
-Above these numbers we re-evaluate hosting tier, Neon plan, and LiveKit pricing.
+Above these numbers we re-evaluate hosting tier, Neon plan, and Daily.co pricing.
 
 ---
 
@@ -812,9 +814,9 @@ PENDING_REVIEW → APPROVED → (optionally) SUSPENDED → APPROVED
 
 ### 3.4 Video session lifecycle
 
-**Decision:** A LiveKit room is created **lazily** at session start (15 min before scheduled time), not at booking time. Room name = `booking-${booking_id}`. Tokens are JWT-signed server-side per join request.
+**Decision:** A Daily.co room is created **lazily** at session start (15 min before scheduled time), not at booking time. Room name = `booking-${booking_id}`. Per-participant meeting tokens are minted server-side via the Daily REST API on each join request and scoped to the booking window.
 
-**Why lazy:** LiveKit charges per room-minute even if empty. Pre-creating wastes money.
+**Why lazy:** Daily.co bills per participant-minute, and stale rooms still consume API quota + leak booking metadata into the dashboard. Pre-creating wastes both.
 
 **Join window:** Both parties can join 15 min before start, 15 min after start. Past that, the room is closed and the session is marked NO_SHOW for whichever side didn't join.
 
@@ -873,7 +875,7 @@ Add **20% buffer** for unknown unknowns. The two biggest unknowns are (a) TBC/BO
 |---|---|---|
 | Vercel Pro | $20 | Required for production; Hobby has bandwidth caps |
 | Neon (Launch plan) | $19 | Adequate for ≤ 1k users; free tier dies under any real traffic |
-| LiveKit Cloud | $0–50 | Free tier 50h/mo; if exceeded, ~$0.004/participant-min |
+| Daily.co | $0–40 | Free tier 10,000 participant-min/mo (~83 1-hr 1-on-1 sessions); $0.002/participant-min above that |
 | Resend | $0–20 | Free tier 3k emails/mo; transactional only |
 | Cloudflare R2 | < $1 | Negligible at our file volumes |
 | Pusher (free tier) | $0 | < 200k messages/day is free |
@@ -895,7 +897,7 @@ Add **20% buffer** for unknown unknowns. The two biggest unknowns are (a) TBC/BO
 
 - TBC commission: ~1.5–2.5% of transaction value (negotiable)
 - BOG commission: ~1.5–2.5% (similar)
-- LiveKit minutes for the session: ~$0.10–0.30 per hour at MVP scale
+- Daily.co minutes for the session: ~$0.24/hr 1-on-1 once the free tier is exhausted (free below ~83 hours/month)
 - Resend email cost: negligible
 
 **Platform commission must cover all of the above plus margin.** Suggested platform commission: **15–20%** of tutor's listed price.
@@ -937,7 +939,7 @@ These are intentional non-goals. Don't pull into v1 mid-flight.
 |---|---|---|---|---|
 | R1 | TBC / BOG sandbox approval takes > 4 weeks, blocking integration testing | High | High | Apply on day 1 of Phase 0; develop against a mock acquirer in parallel; have both banks in pipeline so either unblocks |
 | R2 | Escrow model requires payment-services license under Georgian law | Medium | Critical | Lawyer consult in Phase 0; if license required, pivot to direct tutor merchant accounts (each tutor has their own TBC merchant, platform takes commission via separate API) |
-| R3 | LiveKit free tier exhausted faster than expected, cost spikes | Medium | Medium | Set up usage alerts at 70% / 90%; have Daily.co contract ready as failover; commission can absorb video cost |
+| R3 | Daily.co free tier exhausted faster than expected, cost spikes | Medium | Medium | Set up usage alerts at 70% / 90%; have Jitsi self-host playbook drafted as failover; commission can absorb video cost |
 | R4 | Race condition in booking causes double-booking in production | Medium | High | DB unique constraint + transaction (T3.1); load test with k6 before launch (T7.6) |
 | R5 | Refund disputes between users and tutors create support burden | High | Medium | Clear written policy (T9.2); admin tooling for dispute resolution (T8.7); chargeback fees absorbed by tutor not platform |
 | R6 | Tutor approval queue becomes a bottleneck (1 admin = limit) | Low | Medium | Admin checklist + standard rejection reasons (T8.5); 48h SLA published; recruit second admin if queue > 7 days |
@@ -958,7 +960,7 @@ Resolved in product/architecture conversations. Listed for traceability.
 | # | Decision | Resolution |
 |---|---|---|
 | D1 | Tech stack core | Next.js 15 + Prisma + Neon Postgres + Vercel |
-| D2 | Video provider | LiveKit Cloud (re-evaluate self-host in v2) |
+| D2 | Video provider | Daily.co (changed from LiveKit 2026-05-15 — cheaper per-minute, larger free tier; re-evaluate Jitsi self-host in v2) |
 | D3 | Payments | TBC + BOG (both, in parallel) |
 | D4 | Pricing model | Tutor sets own price; platform takes commission % |
 | D5 | Commission rate | 15–20% (exact number tuned during Phase 0 financial model) |
@@ -993,7 +995,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 | 2 | Public pages (homepage, tutor listing, category, FAQ) | 2.5 weeks | T2.9 |
 | 3 | Tutor onboarding (registration, profile setup, consultations CRUD, availability) | 3 weeks | T3.11 (slot tests) |
 | 4 | Booking flow + payment integration (TBC + BOG) | 3 weeks | T4.10 (money-critical) |
-| 5 | Video sessions (LiveKit) + post-session review | 2 weeks | T5.10 |
+| 5 | Video sessions (Daily.co) + post-session review | 2 weeks | T5.10 |
 | 6 | User dashboard + tutor dashboard + 1-on-1 chat | 2.5 weeks | T6.10 |
 | 7 | Admin panel | 1.5 weeks | T7.10 |
 | 8 | Polish, accessibility, mobile pass, launch prep + Pre-Launch Gate | 1.5 weeks | Gate is the test |
@@ -1077,7 +1079,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
   - [ ] T0.4.2 — Create `src/app/(dashboard)/` route group: `dashboard`, `dashboard/consultations`, `dashboard/payments`, `dashboard/settings`, `dashboard/support`
   - [ ] T0.4.3 — Create `src/app/(tutor)/` route group: `tutor/dashboard`, `tutor/consultations`, `tutor/availability`, `tutor/analytics`, `tutor/settings`
   - [ ] T0.4.4 — Create `src/app/admin/` route group: `admin/tutors`, `admin/users`, `admin/bookings`, `admin/refunds`, `admin/payouts`, `admin/categories`, `admin/audit`
-  - [ ] T0.4.5 — Create `src/app/api/` placeholders: `api/webhooks/tbc`, `api/webhooks/bog`, `api/webhooks/livekit`, `api/auth/[...nextauth]`, `api/cron/expire-bookings`, `api/cron/send-reminders`, `api/cron/mark-no-shows`
+  - [ ] T0.4.5 — Create `src/app/api/` placeholders: `api/webhooks/tbc`, `api/webhooks/bog`, `api/webhooks/daily`, `api/auth/[...nextauth]`, `api/cron/expire-bookings`, `api/cron/send-reminders`, `api/cron/mark-no-shows`
   - [ ] T0.4.6 — Create `src/components/ui/` (shadcn destination)
   - [ ] T0.4.7 — Create `src/components/layout/`, `marketing/`, `booking/`, `session/`, `dashboard/`, `tutor/`, `admin/`
   - [ ] T0.4.8 — Create `src/lib/db/`, `auth/`, `payments/`, `video/`, `email/`, `storage/`, `utils/`, `validators/`
@@ -2315,40 +2317,40 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 
 ### Phase 5 — Video sessions
 
-**Goal:** At session time, both parties join a LiveKit room. Video, audio, screen share, in-call chat, file share work. Post-session, the user can rate the tutor.
+**Goal:** At session time, both parties join a Daily.co room. Video, audio, screen share, in-call chat, file share work. Post-session, the user can rate the tutor.
 **Estimate:** 2 weeks (80h) including T5.10 tests + Phase 5 Gate.
 
-#### T5.1: LiveKit setup
+#### T5.1: Daily.co setup
 
 - [ ] **Status**: TODO
 - **Complexity**: S
 - **Dependencies**: None
-- **Description**: Provision LiveKit Cloud + install SDKs.
+- **Description**: Provision Daily.co + install SDKs.
 - **Atomic tasks**:
-  - [ ] T5.1.1 — Sign up at livekit.io / cloud.livekit.io
-  - [ ] T5.1.2 — Create LiveKit project; choose region close to Georgia (likely EU)
-  - [ ] T5.1.3 — Generate API Key + Secret; save to `.env.local` + Vercel: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`
-  - [ ] T5.1.4 — Install `pnpm add livekit-server-sdk livekit-client @livekit/components-react @livekit/components-styles`
-  - [ ] T5.1.5 — Write Node script to test SDK connection (create test room)
-  - [ ] T5.1.6 — Configure LiveKit usage alerts: 70% / 90% of monthly free tier (50h)
-- **Acceptance**: Test script creates a room successfully on LiveKit Cloud.
+  - [ ] T5.1.1 — Sign up at daily.co (free tier: 10,000 participant-minutes/mo)
+  - [ ] T5.1.2 — Create Daily domain (`<subdomain>.daily.co`); pick EU region in dashboard
+  - [ ] T5.1.3 — Generate API key (Dashboard → Developers); save to `.env.local` + Vercel: `DAILY_API_KEY`, `DAILY_DOMAIN`
+  - [ ] T5.1.4 — Install `pnpm add @daily-co/daily-js @daily-co/daily-react`
+  - [ ] T5.1.5 — Write Node script to test REST API (create + delete throwaway room via `POST /v1/rooms`)
+  - [ ] T5.1.6 — Configure Daily usage alerts: 70% / 90% of monthly free tier (10,000 min); add to `docs/runbook/daily-setup.md`
+- **Acceptance**: Test script creates and deletes a room successfully against Daily REST API.
 
 #### T5.2: Room creation on session start
 
 - [ ] **Status**: TODO
 - **Complexity**: M
 - **Dependencies**: T5.1, T4.6
-- **Description**: Lazy room creation + scoped JWT tokens.
+- **Description**: Lazy room creation + scoped meeting tokens.
 - **Atomic tasks**:
   - [ ] T5.2.1 — Server action `requestRoomToken({bookingId})` — verifies user is party to booking
   - [ ] T5.2.2 — Verify current time within join window (15 min before start → 15 min after start)
   - [ ] T5.2.3 — Outside window → return 403 `OUTSIDE_WINDOW`
-  - [ ] T5.2.4 — Generate JWT via `livekit-server-sdk` AccessToken with `identity=user_id`, `room=booking-${id}`, `videoGrants={room, roomJoin, canPublish, canSubscribe}`
-  - [ ] T5.2.5 — Token expires at `endTime + 30min`
-  - [ ] T5.2.6 — Return `{token, url, room}`
-  - [ ] T5.2.7 — Webhook `/api/webhooks/livekit/route.ts` — capture `room_started`, `participant_joined`, `participant_left`, `room_finished`
+  - [ ] T5.2.4 — If room missing, create via `POST /v1/rooms` with `name=booking-${id}`, `properties.nbf=startTime-15min`, `properties.exp=endTime+30min`, `properties.eject_at_room_exp=true`
+  - [ ] T5.2.5 — Mint meeting token via `POST /v1/meeting-tokens` with `room_name`, `user_id`, `user_name`, `exp=endTime+30min`, `is_owner` for tutor only
+  - [ ] T5.2.6 — Return `{token, url, roomName}`
+  - [ ] T5.2.7 — Webhook `/api/webhooks/daily/route.ts` — capture `meeting.started`, `participant.joined`, `participant.left`, `meeting.ended` (verify signature via Daily HMAC header)
   - [ ] T5.2.8 — Persist join events to `BookingSessionEvent` table (for no-show attribution)
-- **Acceptance**: In-window join works; outside window returns 403; events logged.
+- **Acceptance**: In-window join works; outside window returns 403; events logged; signature verified.
 
 #### T5.3: Pre-session waiting room
 
@@ -2366,7 +2368,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
   - [ ] T5.3.7 — Permission-denied state: actionable error with browser-specific instructions
   - [ ] T5.3.8 — No-camera state: "Continue with audio only" option
   - [ ] T5.3.9 — Network speed indicator (optional)
-  - [ ] T5.3.10 — "Join" CTA → connects to LiveKit room
+  - [ ] T5.3.10 — "Join" CTA → connects to Daily.co room
   - [ ] T5.3.11 — Waiting state UI: "Waiting for tutor / user to join..." spinner
 - **Acceptance**: All permission/device states have actionable UI; user understands what's wrong.
 
@@ -2375,17 +2377,17 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 - [ ] **Status**: TODO
 - **Complexity**: L
 - **Dependencies**: T5.3
-- **Description**: In-call UX built on LiveKit React components.
+- **Description**: In-call UX built on Daily React hooks.
 - **Atomic tasks**:
-  - [ ] T5.4.1 — Build `InCallRoom` with `LiveKitRoom` wrapper from `@livekit/components-react`
-  - [ ] T5.4.2 — Layout: peer video full-bleed, self-view PiP bottom-right (draggable)
+  - [ ] T5.4.1 — Build `InCallRoom` with `<DailyProvider>` from `@daily-co/daily-react`; call object configured headless (custom UI, not Daily Prebuilt)
+  - [ ] T5.4.2 — Layout: peer video full-bleed via `<DailyVideo>`, self-view PiP bottom-right (draggable)
   - [ ] T5.4.3 — Top bar (translucent): peer name + remaining time countdown + connection quality
   - [ ] T5.4.4 — Bottom control bar (centered, translucent): mic, camera, screen share, chat, files, end-call
-  - [ ] T5.4.5 — Mic toggle button with state indicator
-  - [ ] T5.4.6 — Camera toggle button
+  - [ ] T5.4.5 — Mic toggle button with state indicator (`useDaily().setLocalAudio()`)
+  - [ ] T5.4.6 — Camera toggle button (`useDaily().setLocalVideo()`)
   - [ ] T5.4.7 — Side panel for chat (T5.6) + files (T5.7) — slide-from-right
   - [ ] T5.4.8 — Mobile: full-bleed video, swipeable panels, fullscreen self-view toggle
-  - [ ] T5.4.9 — Connection quality indicator (excellent/good/poor) — uses LiveKit metrics
+  - [ ] T5.4.9 — Connection quality indicator (excellent/good/poor) — uses `useNetwork()` hook
   - [ ] T5.4.10 — Auto-hide controls after 3s idle on desktop (mouse-move shows again)
   - [ ] T5.4.11 — Test on: Chrome desktop + Android, Safari mac + iOS, Firefox desktop
 - **Acceptance**: All controls work across all browsers; mobile UX clean.
@@ -2395,11 +2397,11 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 - [ ] **Status**: TODO
 - **Complexity**: S
 - **Dependencies**: T5.4
-- **Description**: Screen share toggle using LiveKit primitives.
+- **Description**: Screen share toggle using Daily primitives.
 - **Atomic tasks**:
   - [ ] T5.5.1 — Add screen-share toggle button to control bar
-  - [ ] T5.5.2 — Use `useLocalParticipant().localParticipant.setScreenShareEnabled()`
-  - [ ] T5.5.3 — When peer starts sharing, swap layout: share = main, peer-camera = PiP
+  - [ ] T5.5.2 — Use `useDaily().startScreenShare()` / `stopScreenShare()`
+  - [ ] T5.5.3 — When peer starts sharing, swap layout: share = main, peer-camera = PiP (subscribe to `screenVideoTrack` from `useParticipantIds({filter:'screen'})`)
   - [ ] T5.5.4 — Test mobile Safari quirks (limited screen share on iOS)
 - **Acceptance**: Screen share works both directions on desktop; documented mobile limitations.
 
@@ -2408,11 +2410,11 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 - [ ] **Status**: TODO
 - **Complexity**: M
 - **Dependencies**: T5.4
-- **Description**: Chat via LiveKit data channels + persistence.
+- **Description**: Chat via Daily app messages + persistence.
 - **Atomic tasks**:
   - [ ] T5.6.1 — Build `ChatPanel` UI: thread + input + send button
-  - [ ] T5.6.2 — Subscribe to `room.on('dataReceived')` events
-  - [ ] T5.6.3 — Send: `room.localParticipant.publishData(JSON.stringify({type:'chat', body, ts}))` via reliable channel
+  - [ ] T5.6.2 — Subscribe to `'app-message'` events via `useAppMessage()`
+  - [ ] T5.6.3 — Send: `daily.sendAppMessage({type:'chat', body, ts}, '*')`
   - [ ] T5.6.4 — Buffer messages locally during call
   - [ ] T5.6.5 — On call end → persist buffer to DB as `Message` rows (linked to booking)
   - [ ] T5.6.6 — Transcript viewable on Booking Detail post-session (T6.3)
@@ -2442,7 +2444,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 - **Dependencies**: T5.4
 - **Description**: Mark COMPLETED, prompt review, queue payout.
 - **Atomic tasks**:
-  - [ ] T5.8.1 — On `endCall` button OR LiveKit `room_finished` webhook → close room
+  - [ ] T5.8.1 — On `endCall` button OR Daily `meeting.ended` webhook → close room (DELETE `/v1/rooms/{name}`)
   - [ ] T5.8.2 — Server logic: if booking has join events and end is past scheduled end+5min grace → status=COMPLETED
   - [ ] T5.8.3 — Build post-session screen for user: 1–5 star rating + optional textarea + "Submit review" / "Skip"
   - [ ] T5.8.4 — Build post-session screen for tutor: "Session ended" + private note field for tutor's own records
@@ -2461,7 +2463,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 - **Atomic tasks**:
   - [ ] T5.9.1 — Vercel Cron `*/15 * * * *` → `/api/cron/mark-no-shows`
   - [ ] T5.9.2 — Logic: find bookings with `endTime + 30min < NOW()` and status=PAID/CONFIRMED
-  - [ ] T5.9.3 — Query LiveKit join events (from BookingSessionEvent table)
+  - [ ] T5.9.3 — Query Daily.co join events (from BookingSessionEvent table)
   - [ ] T5.9.4 — Case: both joined → status=COMPLETED (handled in T5.8 fallback)
   - [ ] T5.9.5 — Case: only user joined → status=NO_SHOW, attribution=TUTOR, full refund + strike (T4.9 path)
   - [ ] T5.9.6 — Case: only tutor joined → status=NO_SHOW, attribution=USER, tutor still paid
@@ -2484,9 +2486,9 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
   - [ ] T5.10.6 — Integration: no-show — only user → NO_SHOW + tutor strike
   - [ ] T5.10.7 — Integration: no-show — only tutor → NO_SHOW + user side
   - [ ] T5.10.8 — Integration: no-show — neither → NO_SHOW with admin flag
-  - [ ] T5.10.9 — E2E (mocked LiveKit): join → both present → end → review prompt
+  - [ ] T5.10.9 — E2E (mocked Daily): join → both present → end → review prompt
   - [ ] T5.10.10 — A11y: pre-session waiting room + post-session review
-- **Acceptance**: All tests pass; reusable mock LiveKit harness.
+- **Acceptance**: All tests pass; reusable mock Daily harness.
 
 ---
 
@@ -2496,7 +2498,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 - [ ] All Phase 5 tests green
 - [ ] Token-window enforcement tested
 
-**Manual — real LiveKit room with 2 humans:**
+**Manual — real Daily.co room with 2 humans:**
 - [ ] Person A (Mac, Chrome, Wi-Fi) + Person B (Android, Chrome, mobile data) — both join → see each other's video and hear audio
 - [ ] Test screen share both directions
 - [ ] Test in-call chat — messages appear in real-time on both sides
@@ -2920,7 +2922,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
   - [ ] T8.1.6 — Remove unused CSS audit (uncss / size-limit)
   - [ ] T8.1.7 — Tree-shake unused JS — check bundle analyzer
   - [ ] T8.1.8 — Defer non-critical scripts
-  - [ ] T8.1.9 — Add `<link rel="preconnect">` for external origins (Resend, R2, LiveKit, Pusher)
+  - [ ] T8.1.9 — Add `<link rel="preconnect">` for external origins (Resend, R2, Daily.co, Pusher)
   - [ ] T8.1.10 — Verify CLS < 0.1 (image dimensions, font fallback metrics)
 - **Acceptance**: All routes meet mobile budgets; PR blocked if regression.
 
@@ -2974,7 +2976,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
   - [ ] T8.4.1 — Install k6 locally
   - [ ] T8.4.2 — Create scenario A: 100 concurrent users browsing homepage + tutor listing + profile
   - [ ] T8.4.3 — Create scenario B: 20 concurrent bookings (mock acquirer)
-  - [ ] T8.4.4 — Create scenario C: 50 simultaneous LiveKit token requests
+  - [ ] T8.4.4 — Create scenario C: 50 simultaneous Daily.co meeting-token requests
   - [ ] T8.4.5 — Run against staging environment
   - [ ] T8.4.6 — Measure p50, p95, p99 latencies per endpoint
   - [ ] T8.4.7 — Compare against §2 targets — fix degradations
@@ -3033,7 +3035,7 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
   - [ ] T8.7.1 — Receive TBC production credentials (after merchant onboarding fully complete)
   - [ ] T8.7.2 — Receive BOG production credentials
   - [ ] T8.7.3 — Verify production webhook URLs registered in TBC + BOG portals
-  - [ ] T8.7.4 — Switch Vercel env vars from sandbox to production (TBC, BOG, LiveKit, Resend)
+  - [ ] T8.7.4 — Switch Vercel env vars from sandbox to production (TBC, BOG, Daily.co, Resend)
   - [ ] T8.7.5 — Run Neon point-in-time-restore drill (verify backup works)
   - [ ] T8.7.6 — Run final Prisma migration on prod branch
   - [ ] T8.7.7 — Seed prod with: 10–15 categories, admin user, T&C v1
@@ -3101,7 +3103,7 @@ This is the final gate. Everything must be green or explicitly waived.
 - [ ] Edge case: pay then cancel within 24h → refund within policy bracket arrives within 5 business days
 
 **Manual — video:**
-- [ ] Two real humans on two real networks complete a 15-minute session including all features, on production LiveKit project
+- [ ] Two real humans on two real networks complete a 15-minute session including all features, on production Daily.co domain
 
 **Manual — outsider UX review:**
 - [ ] A non-developer (friend / family) completes a full booking on their own device without instructions. Watch silently. Note every pause / confusion. Fix the top 3.
@@ -3150,7 +3152,7 @@ Triage after first 30 days of data:
 - Verified-identity badge (integrated KYC provider)
 - Recommendation engine (collaborative filtering on bookings)
 - Native iOS / Android apps
-- Self-hosted LiveKit (cost optimization once volume justifies)
+- Self-hosted Jitsi (cost optimization once volume justifies)
 
 ---
 
