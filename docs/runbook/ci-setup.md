@@ -18,12 +18,27 @@ Lighthouse budgets live in `.lighthouserc.json`.
 
 Add at **Settings → Secrets and variables → Actions → New repository secret**.
 
-| Secret          | Workflow            | How to obtain                                                                        |
-| --------------- | ------------------- | ------------------------------------------------------------------------------------ |
-| `CODECOV_TOKEN` | `ci.yml` (test job) | Sign up at <https://codecov.io>, add the repo, copy the **Repository Upload Token**. |
-| `SNYK_TOKEN`    | `nightly.yml`       | Sign up at <https://snyk.io> (free tier), then **Account settings → Auth Token**.    |
+| Secret                            | Workflow                         | How to obtain                                                                                                                    |
+| --------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `CODECOV_TOKEN`                   | `ci.yml` (test job)              | Sign up at <https://codecov.io>, add the repo, copy the **Repository Upload Token**.                                             |
+| `SNYK_TOKEN`                      | `nightly.yml`                    | Sign up at <https://snyk.io> (free tier), then **Account settings → Auth Token**.                                                |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | `e2e-preview.yml`, `nightly.yml` | Vercel project → **Settings → Deployment Protection → Protection Bypass for Automation → Add Secret**. Copy the generated value. |
 
 `GITHUB_TOKEN` is provided automatically — no action needed.
+
+### Vercel Protection Bypass (why it's needed)
+
+Vercel preview deployments are gated behind Vercel SSO by default — Playwright
+and Lighthouse hit `vercel.com/login` instead of the app. The bypass secret
+lets CI traffic through while keeping previews protected from random scanners.
+
+- **Playwright** reads `VERCEL_AUTOMATION_BYPASS_SECRET` in `playwright.config.ts`
+  and sends `x-vercel-protection-bypass` + `x-vercel-set-bypass-cookie` headers.
+- **Lighthouse CI** appends the secret as query params; the action's job step
+  uses `::add-mask::` so the token never appears in logs.
+
+If the secret is unset, both jobs run without bypass — useful only if you
+disable Vercel Deployment Protection entirely.
 
 ### Optional repository variables
 

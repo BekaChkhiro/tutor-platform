@@ -18,6 +18,7 @@ jobs:
     env:
       # Override at workflow-dispatch time if the production URL differs.
       PLAYWRIGHT_BASE_URL: ${{ vars.NIGHTLY_E2E_BASE_URL || 'https://tutor.vercel.app' }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - uses: actions/checkout@v4
 

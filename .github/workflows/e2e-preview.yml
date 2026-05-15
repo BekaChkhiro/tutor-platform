@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 30
     env:
       PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.target_url }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -81,11 +82,25 @@ jobs:
         with:
           ref: ${{ github.event.deployment.sha }}
 
+      - name: Build target URL with Vercel bypass
+        id: target
+        env:
+          BASE_URL: ${{ github.event.deployment_status.target_url }}
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          if [ -n "$BYPASS" ]; then
+            URL="${BASE_URL}?x-vercel-protection-bypass=${BYPASS}&x-vercel-set-bypass-cookie=samesitenone"
+          else
+            URL="$BASE_URL"
+          fi
+          # Mask the URL so the bypass token doesn't leak into logs.
+          echo "::add-mask::$URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
-          urls: |
-            ${{ github.event.deployment_status.target_url }}
+          urls: ${{ steps.target.outputs.url }}
           configPath: ./.lighthouserc.json
           uploadArtifacts: true
           temporaryPublicStorage: true

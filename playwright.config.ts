@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
 const isCI = !!process.env.CI;
 const useExternalServer = !!process.env.PLAYWRIGHT_BASE_URL;
+const vercelBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
 export default defineConfig({
   testDir: './e2e',
@@ -18,6 +19,12 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    extraHTTPHeaders: vercelBypass
+      ? {
+          'x-vercel-protection-bypass': vercelBypass,
+          'x-vercel-set-bypass-cookie': 'samesitenone',
+        }
+      : undefined,
   },
   projects: [
     {
