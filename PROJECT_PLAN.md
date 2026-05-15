@@ -1265,20 +1265,20 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 
 #### T0.12: Logging + error tracking
 
-- [ ] **Status**: TODO
+- [x] **Status**: CODE-COMPLETE (manual Sentry account + Vercel env + prod verify pending — see `docs/runbook/sentry-setup.md`)
 - **Complexity**: S
 - **Dependencies**: T0.6
 - **Description**: Wire Sentry for runtime error capture.
 - **Atomic tasks**:
-  - [ ] T0.12.1 — Sign up at sentry.io, create project type "Next.js"
-  - [ ] T0.12.2 — Run `pnpm dlx @sentry/wizard@latest -i nextjs`
-  - [ ] T0.12.3 — Verify `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` created
-  - [ ] T0.12.4 — Add `SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` to `.env.local` and Vercel env
-  - [ ] T0.12.5 — Configure source-map upload in `next.config.js` (`withSentryConfig`)
-  - [ ] T0.12.6 — Set `tracesSampleRate: 0.1` for production (10% sampling)
-  - [ ] T0.12.7 — Create test endpoint `/api/sentry-test` that throws an error
-  - [ ] T0.12.8 — Trigger error from prod, verify it appears in Sentry within 1 min with source-mapped stack trace
-  - [ ] T0.12.9 — Set up Sentry alerts for: new issue, error spike, crash rate > 1%
+  - [ ] T0.12.1 — Sign up at sentry.io, create project type "Next.js" _(manual — user step)_
+  - [x] T0.12.2 — ~~Run `pnpm dlx @sentry/wizard@latest -i nextjs`~~ → installed `@sentry/nextjs` and wired configs by hand (wizard requires interactive Sentry login)
+  - [x] T0.12.3 — Sentry init files in place: `src/instrumentation-client.ts` (modern replacement for `sentry.client.config.ts`, required for Turbopack), `sentry.server.config.ts`, `sentry.edge.config.ts`, plus `src/instrumentation.ts` and `src/app/global-error.tsx`
+  - [x] T0.12.4 — `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` documented in `.env.example` and `docs/runbook/vercel-setup.md` (real values pending Sentry signup)
+  - [x] T0.12.5 — `next.config.ts` wrapped with `withSentryConfig`; source-map upload auto-skipped when `SENTRY_AUTH_TOKEN` is unset
+  - [x] T0.12.6 — `tracesSampleRate` is `0.1` in production / `1.0` in dev across all three configs
+  - [x] T0.12.7 — `src/app/api/sentry-test/route.ts` throws `SentryTestError`
+  - [ ] T0.12.8 — Prod trigger + source-mapped stack trace verification _(blocked on T0.12.1)_
+  - [ ] T0.12.9 — Configure alerts: new issue, error spike, crash rate > 1% _(blocked on T0.12.1)_
 - **Acceptance**: Test error captures correctly; alert fires on test threshold breach.
 
 #### T0.13: Design tokens in code (`tailwind.config.ts`)

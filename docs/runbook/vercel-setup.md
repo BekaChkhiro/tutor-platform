@@ -22,14 +22,18 @@ In **Project → Settings → Environment Variables**, add placeholders for
 `Production`, `Preview`, and `Development` scopes. Use real values for
 Production once the corresponding service is provisioned.
 
-| Variable          | Source / when to fill                               |
-| ----------------- | --------------------------------------------------- |
-| `DATABASE_URL`    | Neon **pooled** connection string (T0.5).           |
-| `DIRECT_URL`      | Neon **direct** connection string (T0.5).           |
-| `NEXTAUTH_URL`    | `https://<vercel-prod-domain>` (Production).        |
-| `NEXTAUTH_SECRET` | `openssl rand -base64 32` — unique per environment. |
-| `RESEND_API_KEY`  | Resend dashboard (added later).                     |
-| `SENTRY_DSN`      | Sentry project DSN (added later).                   |
+| Variable                 | Source / when to fill                                 |
+| ------------------------ | ----------------------------------------------------- |
+| `DATABASE_URL`           | Neon **pooled** connection string (T0.5).             |
+| `DIRECT_URL`             | Neon **direct** connection string (T0.5).             |
+| `NEXTAUTH_URL`           | `https://<vercel-prod-domain>` (Production).          |
+| `NEXTAUTH_SECRET`        | `openssl rand -base64 32` — unique per environment.   |
+| `RESEND_API_KEY`         | Resend dashboard (added later).                       |
+| `SENTRY_DSN`             | Sentry project DSN (T0.12 — see `sentry-setup.md`).   |
+| `NEXT_PUBLIC_SENTRY_DSN` | Same value as `SENTRY_DSN` (browser-exposed).         |
+| `SENTRY_AUTH_TOKEN`      | Sentry auth token for source-map upload (build-time). |
+| `SENTRY_ORG`             | Sentry organization slug.                             |
+| `SENTRY_PROJECT`         | Sentry project slug.                                  |
 
 See `.env.example` for shape.
 
