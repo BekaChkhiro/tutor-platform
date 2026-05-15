@@ -1263,23 +1263,12 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
   - [ ] T0.11.46 — Share Figma file with view access (link in `docs/design/figma-link.md`)
 - **Acceptance**: Every Figma deliverable checklist item complete; tokens exactly match `tailwind.config.ts` (T0.13).
 
-#### T0.12: Logging + error tracking
+#### T0.12: Logging + error tracking — **DESCOPED**
 
-- [x] **Status**: CODE-COMPLETE (manual Sentry account + Vercel env + prod verify pending — see `docs/runbook/sentry-setup.md`)
-- **Complexity**: S
-- **Dependencies**: T0.6
-- **Description**: Wire Sentry for runtime error capture.
-- **Atomic tasks**:
-  - [ ] T0.12.1 — Sign up at sentry.io, create project type "Next.js" _(manual — user step)_
-  - [x] T0.12.2 — ~~Run `pnpm dlx @sentry/wizard@latest -i nextjs`~~ → installed `@sentry/nextjs` and wired configs by hand (wizard requires interactive Sentry login)
-  - [x] T0.12.3 — Sentry init files in place: `src/instrumentation-client.ts` (modern replacement for `sentry.client.config.ts`, required for Turbopack), `sentry.server.config.ts`, `sentry.edge.config.ts`, plus `src/instrumentation.ts` and `src/app/global-error.tsx`
-  - [x] T0.12.4 — `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` documented in `.env.example` and `docs/runbook/vercel-setup.md` (real values pending Sentry signup)
-  - [x] T0.12.5 — `next.config.ts` wrapped with `withSentryConfig`; source-map upload auto-skipped when `SENTRY_AUTH_TOKEN` is unset
-  - [x] T0.12.6 — `tracesSampleRate` is `0.1` in production / `1.0` in dev across all three configs
-  - [x] T0.12.7 — `src/app/api/sentry-test/route.ts` throws `SentryTestError`
-  - [ ] T0.12.8 — Prod trigger + source-mapped stack trace verification _(blocked on T0.12.1)_
-  - [ ] T0.12.9 — Configure alerts: new issue, error spike, crash rate > 1% _(blocked on T0.12.1)_
-- **Acceptance**: Test error captures correctly; alert fires on test threshold breach.
+- [ ] **Status**: DESCOPED (2026-05-15)
+- **Decision**: Sentry wiring removed; product owner chose to defer error-tracking tooling until traffic justifies it. All `@sentry/nextjs` code, configs, env vars, and runbook docs were stripped in PR after T0.17.
+- **Re-entry**: Pick an error-tracker (Sentry / Axiom / Highlight / self-hosted) before Phase 1 ships to users — Phase 1 error boundaries (T1.8) currently log to console only.
+- **Note**: References to "Sentry" in T1.7.14, T1.8.2, T1.8.5, T4.3.15, T4.5.5, T8.7.10 should be reinterpreted as "the chosen error tracker" once the tooling decision is made.
 
 #### T0.13: Design tokens in code (`tailwind.config.ts`)
 
@@ -1416,7 +1405,6 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 - [ ] `pnpm test:unit && pnpm test:integration && pnpm test:component && pnpm test:e2e && pnpm test:a11y` all green
 - [ ] CI pipeline triggers and passes on a test PR
 - [ ] Vercel preview deploys on PR
-- [ ] Sentry receives a thrown test error
 
 **Manual:**
 - [ ] Domain DNS resolves to Vercel

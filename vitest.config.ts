@@ -20,8 +20,6 @@ export default defineConfig({
         'src/**/*.test.{ts,tsx}',
         'src/**/*.spec.{ts,tsx}',
         'src/app/**/{layout,page,loading,error,not-found,template,route,global-error}.{ts,tsx}',
-        'src/instrumentation*.ts',
-        'sentry.*.config.ts',
       ],
       thresholds: {
         lines: 60,
