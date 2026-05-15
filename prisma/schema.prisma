@@ -1,0 +1,11 @@
+// Prisma schema — Neon Postgres (Frankfurt).
+// Connection URLs live in prisma.config.ts (Prisma 7+).
+// Models will be added in T1.1+.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
