@@ -1366,24 +1366,24 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 
 #### T0.16: E2E + accessibility test infrastructure (Playwright)
 
-- [ ] **Status**: TODO
+- [x] **Status**: DONE
 - **Complexity**: M
 - **Dependencies**: T0.6
 - **Description**: Playwright with multi-browser + accessibility scanning.
 - **Atomic tasks**:
-  - [ ] T0.16.1 — Install: `pnpm dlx create-playwright@latest`
-  - [ ] T0.16.2 — Install: `pnpm add -D @axe-core/playwright`
-  - [ ] T0.16.3 — Configure `playwright.config.ts` with projects: chromium, firefox, webkit, mobile-chrome (Pixel 5), mobile-safari (iPhone 13)
-  - [ ] T0.16.4 — Set `baseURL` from env: `PLAYWRIGHT_BASE_URL || http://localhost:3000`
-  - [ ] T0.16.5 — Configure `webServer` block to start `pnpm dev` if running locally
-  - [ ] T0.16.6 — Create `e2e/helpers/auth.ts` — login via API + cookie injection (faster than UI login)
-  - [ ] T0.16.7 — Create `e2e/helpers/db-seed.ts` — invoke seed before E2E run
-  - [ ] T0.16.8 — Create `e2e/helpers/axe.ts` — wrapper to scan page with axe-core, fail on critical violations
-  - [ ] T0.16.9 — Write smoke E2E: homepage loads, h1 contains expected text
-  - [ ] T0.16.10 — Write smoke a11y: homepage scan → 0 critical violations
-  - [ ] T0.16.11 — Add scripts: `test:e2e`, `test:e2e:ui`, `test:e2e:debug`, `test:a11y`
-  - [ ] T0.16.12 — Configure HTML report output to `playwright-report/` (gitignored)
-- **Acceptance**: Smoke tests pass on chromium + firefox + webkit + mobile-chrome + mobile-safari.
+  - [x] T0.16.1 — Install: `pnpm add -D @playwright/test` (used direct add instead of create-playwright scaffold to preserve the existing repo layout)
+  - [x] T0.16.2 — Install: `pnpm add -D @axe-core/playwright`
+  - [x] T0.16.3 — Configure `playwright.config.ts` with projects: chromium, firefox, webkit, mobile-chrome (Pixel 5), mobile-safari (iPhone 13)
+  - [x] T0.16.4 — Set `baseURL` from env: `PLAYWRIGHT_BASE_URL || http://localhost:3000`
+  - [x] T0.16.5 — Configure `webServer` block to start `pnpm dev` if running locally
+  - [x] T0.16.6 — Create `e2e/helpers/auth.ts` — login via API + cookie injection (faster than UI login)
+  - [x] T0.16.7 — Create `e2e/helpers/db-seed.ts` — invoke seed before E2E run
+  - [x] T0.16.8 — Create `e2e/helpers/axe.ts` — wrapper to scan page with axe-core, fail on critical violations
+  - [x] T0.16.9 — Write smoke E2E: homepage loads, h1 contains expected text
+  - [x] T0.16.10 — Write smoke a11y: homepage scan → 0 critical violations
+  - [x] T0.16.11 — Add scripts: `test:e2e`, `test:e2e:ui`, `test:e2e:debug`, `test:a11y`
+  - [x] T0.16.12 — Configure HTML report output to `playwright-report/` (gitignored)
+- **Acceptance**: Smoke tests pass on chromium + firefox + webkit + mobile-chrome + mobile-safari. ✅ 10/10 green.
 
 #### T0.17: CI/CD — GitHub Actions pipeline
 
