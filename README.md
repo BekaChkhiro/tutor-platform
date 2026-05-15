@@ -26,15 +26,15 @@ pnpm dev
 
 ## Scripts
 
-| Script | Description |
-|---|---|
-| `pnpm dev` | Start the Next.js dev server |
-| `pnpm build` | Production build |
-| `pnpm start` | Run the production build |
-| `pnpm lint` | ESLint |
-| `pnpm typecheck` | TypeScript check |
-| `pnpm test` | Unit + integration tests |
-| `pnpm test:e2e` | Playwright end-to-end tests |
+| Script           | Description                  |
+| ---------------- | ---------------------------- |
+| `pnpm dev`       | Start the Next.js dev server |
+| `pnpm build`     | Production build             |
+| `pnpm start`     | Run the production build     |
+| `pnpm lint`      | ESLint                       |
+| `pnpm typecheck` | TypeScript check             |
+| `pnpm test`      | Unit + integration tests     |
+| `pnpm test:e2e`  | Playwright end-to-end tests  |
 
 _Filled in per phase as the scaffolding lands._
 
