@@ -1,0 +1,39 @@
+# Node
+node_modules
+.next
+dist
+out
+.turbo
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Testing
+coverage
+playwright-report
+test-results
+.nyc_output
+
+# PlanFlow local index cache
+.planflow/index-state.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
