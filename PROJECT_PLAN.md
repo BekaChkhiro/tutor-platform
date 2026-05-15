@@ -1344,24 +1344,24 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 
 #### T0.15: Unit + integration test infrastructure (Vitest)
 
-- [ ] **Status**: TODO
+- [x] **Status**: DONE
 - **Complexity**: M
 - **Dependencies**: T0.3
 - **Description**: Vitest with Testcontainers Postgres for real-DB integration tests.
 - **Atomic tasks**:
-  - [ ] T0.15.1 — Install: `pnpm add -D vitest @vitest/coverage-v8 @vitest/ui jsdom @testing-library/react @testing-library/user-event @testing-library/jest-dom`
-  - [ ] T0.15.2 — Install: `pnpm add -D testcontainers @testcontainers/postgresql`
-  - [ ] T0.15.3 — Create `vitest.config.ts` with workspace config (unit/node, integration/node + testcontainers, component/jsdom)
-  - [ ] T0.15.4 — Create `vitest.setup.ts` — register `@testing-library/jest-dom` matchers
-  - [ ] T0.15.5 — Create `src/tests/helpers/testcontainers.ts` — Postgres container helper, returns Prisma client per test worker
-  - [ ] T0.15.6 — Create `src/tests/helpers/cleanup.ts` — truncate all tables `beforeEach`
-  - [ ] T0.15.7 — Create `prisma/seed.ts` — deterministic seed (1 admin, 2 users, 5 tutors across statuses, 10 consultations, 20 bookings)
-  - [ ] T0.15.8 — Create `src/tests/factories/user.ts`, `tutor.ts`, `booking.ts`, `consultation.ts`
-  - [ ] T0.15.9 — Write smoke unit test: `1+1=2`
-  - [ ] T0.15.10 — Write smoke integration test: insert user via Prisma + select back
-  - [ ] T0.15.11 — Write smoke component test: render Button + assert text + click handler
-  - [ ] T0.15.12 — Add scripts: `test:unit`, `test:integration`, `test:component`, `test`, `test:coverage`, `test:ui`
-  - [ ] T0.15.13 — Configure coverage thresholds in `vitest.config.ts`: `lines: 60`, `branches: 60`, `functions: 60`, with `'src/lib/**': 80%`
+  - [x] T0.15.1 — Install: `pnpm add -D vitest @vitest/coverage-v8 @vitest/ui jsdom @testing-library/react @testing-library/user-event @testing-library/jest-dom`
+  - [x] T0.15.2 — Install: `pnpm add -D testcontainers @testcontainers/postgresql`
+  - [x] T0.15.3 — Create `vitest.config.ts` with workspace config (unit/node, integration/node + testcontainers, component/jsdom)
+  - [x] T0.15.4 — Create `vitest.setup.ts` — register `@testing-library/jest-dom` matchers
+  - [x] T0.15.5 — Create `src/tests/helpers/testcontainers.ts` — Postgres container helper, returns Prisma client per test worker
+  - [x] T0.15.6 — Create `src/tests/helpers/cleanup.ts` — truncate all tables `beforeEach`
+  - [x] T0.15.7 — Create `prisma/seed.ts` — deterministic seed (stub — fills in when User/Tutor/Booking/Consultation models land in T1.1+)
+  - [x] T0.15.8 — Create `src/tests/factories/user.ts`, `tutor.ts`, `booking.ts`, `consultation.ts`
+  - [x] T0.15.9 — Write smoke unit test: `1+1=2`
+  - [x] T0.15.10 — Write smoke integration test: insert + select via Prisma against Postgres testcontainer (raw SQL until models land)
+  - [x] T0.15.11 — Write smoke component test: render Button + assert text + click handler
+  - [x] T0.15.12 — Add scripts: `test:unit`, `test:integration`, `test:component`, `test`, `test:coverage`, `test:ui`
+  - [x] T0.15.13 — Configure coverage thresholds in `vitest.config.ts`: `lines: 60`, `branches: 60`, `functions: 60`, with `'src/lib/**': 80%`
 - **Acceptance**: All 3 smoke tests pass; coverage report generated; coverage threshold enforced.
 
 #### T0.16: E2E + accessibility test infrastructure (Playwright)
