@@ -28,6 +28,9 @@ playwright-report
 test-results
 .nyc_output
 
+# Vercel local link / build cache
+.vercel
+
 # PlanFlow local config / index cache
 .planflow/
 

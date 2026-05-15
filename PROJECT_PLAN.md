@@ -399,24 +399,139 @@ Admin uses these criteria during T7.2 approval review:
 - `prefers-reduced-motion` respected
 - Screen reader testing on iOS VoiceOver + Android TalkBack pre-launch
 
-### Figma deliverables checklist (T0.11 expanded)
+### Design workflow (no separate Figma file)
 
-Before any Phase 2 code is written:
+**Decision (D21):** We will NOT maintain a separate Figma design file. Reasons:
+- Solo developer; no dedicated designer
+- Figma maintenance overhead doesn't pay off at our scale
+- Risk of Figma↔code drift
 
-- [ ] Design tokens page (all colors, type scale, spacing, shadows, radii)
-- [ ] Component library page (buttons, inputs, cards, modals, toasts)
-- [ ] Homepage — desktop 1440 + mobile 375
-- [ ] Tutor listing — desktop + mobile
-- [ ] Tutor profile — desktop + mobile (+ booking widget)
-- [ ] Booking modal — all 3 steps, desktop + mobile (bottom sheet variant)
-- [ ] User dashboard — desktop + mobile
-- [ ] Tutor dashboard — desktop + mobile
-- [ ] Video session room — desktop + mobile (controls visible / hidden states)
-- [ ] Auth flow — login, register, password reset
-- [ ] Empty states (3 minimum)
-- [ ] Error states (3 minimum)
+**How design happens instead:**
+1. **§1.5 design system spec** (this section) is the single source of truth for tokens, components, behavior.
+2. **Each UI-building atomic task includes inline design detail** — what it looks like, copy, sizes, colors, states — so the implementer (human + AI assist like v0.dev / Claude / Cursor) has everything needed.
+3. **Inspiration screenshots in `docs/design/inspiration/`** — collected at T0.11 from Cal.com, Intro.co, Airbnb, Linear, etc., for visual reference only.
+4. **`/_design` showcase route** (T0.14) — the live component library is the canonical visual reference once T0.13/T0.14 are done.
+5. **Per-Phase Gate visual review** — compare built screen against §1.5 + inline task spec + inspiration screenshots; iterate in-browser until it feels right.
 
-**When the implementation could go either way:** match the Figma. When Figma and this plan disagree on UX detail, **Figma wins** — update the plan via PR.
+**When implementation needs a layout decision not covered:** pick something that matches §1.5 tokens + Clean Modern + Warm direction (D15), commit it, document in `docs/design/decisions.md` for consistency next time.
+
+### Visual specs per page (inline reference)
+
+These descriptions complement §1.5 and are linked from the relevant Phase 2/3/4/5/6 tasks. Read this section together with the §1.5 page-anatomy ASCII diagrams.
+
+#### Homepage hero (T2.1)
+- Background: `neutral-50` solid (no gradient v1)
+- Layout: 2-column desktop (text 60% / visual 40%), stacked mobile
+- Headline: `display` token (72px desktop / 42px mobile), Noto Sans Georgian Bold, `neutral-900` color, max 2 lines
+- Headline copy: "გიპოვე ექსპერტი, მოწესთ კონსულტაცია" (or final wording)
+- Subhead: `body-lg` token, `neutral-600`, max 3 lines
+- Search bar: 56px height, full-width on mobile + 70% on desktop, white bg + 1px `neutral-200` border, lock icon left + autocomplete chevron right, "გაიგე ექსპერტი ან კატეგორია..." placeholder
+- Primary CTA: `coral` variant, `lg` size — "დაიწყე ძებნა →"
+- Secondary CTA: `secondary` variant, `lg` size — "გახდი ექსპერტი"
+- Trust badges row below CTAs: 3 inline (TBC/BOG logo, "100+ ექსპერტი", "★ 4.8 საშუალო")
+- Visual right side (desktop): photo collage of 3-4 tutor avatars on Indigo gradient backdrop, OR abstract geometric Indigo+Coral composition (avoid stock photos)
+
+#### Tutor card (T2.1, T2.2)
+- Width: 100% of grid column. Aspect ratio: photo 4:5 + 96px content footer
+- Photo: top, 4:5 ratio, `radius-card` top corners only, `next/image` with sizes
+- Verified badge: top-right of photo if approved, small Indigo circle with white checkmark
+- Footer content (16px padding):
+  - Line 1: Name (Noto Sans Bold, `body-lg`, `neutral-900`)
+  - Line 2: Headline (`body-sm`, `neutral-600`, max 2 lines clamp)
+  - Line 3: Category chip (`Badge` variant=secondary, 12px text)
+  - Line 4 (split): ★ rating left (e.g., "★ 4.9 · 23"), starting price right ("50₾-დან")
+- Card states: rest `shadow-rest`, hover `shadow-hover` + translateY(-2px), focus same as hover + `shadow-focus` ring
+- Click target: entire card (anchor wrapper)
+
+#### Tutor profile hero (T2.3)
+- Layout: photo left 280×350 (desktop) / full-width mobile, content right
+- Photo: `radius-card`, object-fit cover
+- Content: Name (`h1`), Verified badge inline if approved, Headline (`body-lg`, `neutral-600`), category tags (Badge row), rating + review count (`★ 4.9 · 23 მიმოხილვა`), "გაზიარება" share button (icon-only `ghost`)
+- Below hero: Tabs (About / Consultations / Reviews / Calendar) — underline-style, sticky on scroll past hero on desktop
+- Sticky right column (desktop only, 380px wide): Booking widget — see below
+
+#### Booking widget sticky sidebar (T2.3 / T4.1)
+- Card with `shadow-rest`, `radius-card`, 24px padding
+- Title: "ხელმისაწვდომი დრო" (`h4`)
+- Mini calendar: current month, available days highlighted in `primary-100`, today outlined, past days disabled
+- Below calendar: list of today's available slots (up to 5) as compact `SlotButton`s in 2-col grid
+- "ნახე ყველა დრო →" full-width `primary` button → opens booking modal
+- Trust strip below button: small lock icon + "გადახდა დაცულია TBC/BOG-ით" (`caption`, `neutral-600`)
+- Mobile equivalent: fixed bottom bar with single "ნახე დრო და დაჯავშნე →" `coral` button (always visible while scrolling tutor profile)
+
+#### Booking modal (T4.1, 3 steps)
+- Desktop: `Dialog` centered, 560px wide, 20px radius, 24px padding
+- Mobile: `Sheet` bottom-sheet variant, full-height with handle indicator on top
+- Header: progress indicator (●─○─○ 1/3) centered + ✕ close top-right
+- Back button: appears top-left from step 2 onward (`ghost` size `sm`)
+- Step 1 — ConsultationPicker:
+  - Title: "აირჩიე კონსულტაცია"
+  - List of consultation cards (each `Card` clickable, single-select):
+    - Title (`body-lg` bold)
+    - Duration chip + price chip (right-aligned: "30 წთ · 50₾")
+    - Short description (`body-sm`, `neutral-600`, 2-line clamp)
+  - Selected state: `primary-500` border 2px + `primary-50` bg
+- Step 2 — DatePicker + SlotGrid:
+  - Title: "აირჩიე დღე და დრო"
+  - Calendar (full width): month nav arrows + grid of dates, available days `primary-100` bg, selected day `primary-500` bg white text
+  - Below calendar: grid of slot buttons (4-col desktop, 3-col mobile), each `SlotButton` shows time "14:00" — available/booked/selected states
+  - Selected slot: `coral-500` bg, white text
+- Step 3 — Summary:
+  - Title: "გადახედე და გადაიხადე"
+  - Summary card (`Card` with `neutral-50` bg): tutor name + photo + consultation + date/time + price line items + total
+  - Refund policy: collapsible details below summary
+  - T&C checkbox: "ვეთანხმები წესებსა და კონფიდენციალურობის პოლიტიკას"
+  - Two payment buttons side-by-side (desktop) / stacked (mobile):
+    - "გადახდა TBC-ით" (`secondary` variant + TBC logo left)
+    - "გადახდა BOG-ით" (`secondary` variant + BOG logo left)
+
+#### Dashboard widgets (T6.1)
+- Grid: 2-col desktop (gap 24px) / 1-col mobile
+- Each widget = `Card` with `shadow-rest`, 24px padding
+- UpcomingBookingWidget (spans 2 cols on desktop):
+  - Header: "შემდეგი კონსულტაცია" + "ნახე ყველა →" link
+  - If has booking: tutor avatar (large 64px) + tutor name + consultation title + datetime (formatted "ხვალ 14:00") + countdown badge if < 24h + "შესვლა" coral CTA if within join window
+  - If empty: friendly illustration + "ჯერ არ გაქვს დაჯავშნილი კონსულტაცია" + "იპოვე ექსპერტი →" `primary` button
+- StatsWidget: 2 stats in 2-col mini-grid (total consultations, total spent), big numbers + label
+
+#### Video session room (T5.4)
+- Background: solid `neutral-900` (dark theme regardless of user preference — room is its own context)
+- Peer video: full-bleed, `object-fit: cover`
+- Self-view: PiP 200×150 default, bottom-right, draggable, `radius` 10px, white 2px border
+- Top bar: translucent black bg (rgba 0,0,0,0.4) backdrop-blur, 48px height
+  - Left: peer name + small green dot if connected
+  - Center: countdown "23:42 დარჩა"
+  - Right: connection quality indicator (3 bars + label)
+- Bottom control bar: translucent, centered, 64px height, auto-hide after 3s desktop idle
+  - 6 icon buttons (48×48 each): mic, camera, share-screen, chat, files, end-call
+  - End-call: `danger` variant red, others `secondary` translucent
+  - States: muted = strikethrough on icon
+- Side panel (right, slides in 360px wide): tabs Chat / Files, dark theme
+- Mobile: full-bleed, controls overlay tap to show, side panel full-screen overlay
+
+#### Empty / Error / Loading state copy library
+Use these exact Georgian strings for consistency:
+- No bookings: "ჯერ არ გაქვს დაჯავშნილი კონსულტაცია" + CTA "იპოვე ექსპერტი →"
+- No tutors match filters: "ფილტრებს არ შეესაბამება ექსპერტი" + CTA "ფილტრების გასუფთავება"
+- No payments: "ჯერ არ გაგიხდია არცერთი კონსულტაცია"
+- No reviews yet: "ჯერ არ აქვს მიმოხილვები"
+- Network error: "კავშირი ვერ მოხერხდა" + CTA "სცადე თავიდან"
+- 404: "გვერდი ვერ მოიძებნა" + CTA "მთავარზე დაბრუნება"
+- 500: "რაღაც არ გამოვიდა" + "სცადე ცოტა ხანში თავიდან"
+- Booking slot taken: "ეს დრო უკვე დაიჯავშნა — აირჩიე სხვა"
+- Payment failed: "გადახდა ვერ მოხდა — სცადე სხვა ბარათით ან მოგვიანებით"
+- Form validation generic: "შეასწორე მონიშნული ველები"
+
+#### Per-screen copy guidelines
+
+- Address user as "შენ" (informal singular) — not "თქვენ" (too formal for a consumer product)
+- Numbers + currency: always with `numeric` font + space before ₾ (e.g., "50 ₾")
+- Time: "14:00" 24-hour format
+- Dates: "15 მაისი 2026" relative for upcoming ("ხვალ", "მე-3 დღეს")
+- Errors are calm, not alarming — never "შეცდომა!" prefer "რაღაც არ გამოვიდა"
+- CTAs are imperative verbs: "დაიწყე", "გადახდე", "შესვლა", "შენახვა"
+
+**When implementation could go either way:** match §1.5 spec + Clean Modern + Warm direction (D15). When in doubt, simpler wins.
 
 ---
 
@@ -996,20 +1111,21 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 
 #### T0.6: Vercel project linked
 
-- [ ] **Status**: TODO
+- [ ] **Status**: IN_PROGRESS (repo prep done; awaiting manual dashboard steps)
 - **Complexity**: S
 - **Dependencies**: T0.5
 - **Description**: Connect repo to Vercel for previews + prod deploys.
 - **Atomic tasks**:
-  - [ ] T0.6.1 — Sign up / log in to Vercel with GitHub
-  - [ ] T0.6.2 — Import the GitHub repo as a new project
-  - [ ] T0.6.3 — Set framework preset = Next.js, build command = `pnpm build`, install = `pnpm install`
-  - [ ] T0.6.4 — Add env vars to Vercel (placeholder values): `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `RESEND_API_KEY`, `SENTRY_DSN` (more added later)
-  - [ ] T0.6.5 — Configure production branch = `master`; preview deploys on every PR
-  - [ ] T0.6.6 — Trigger first deploy by pushing to `master` from local
-  - [ ] T0.6.7 — Verify deployed URL renders blank page successfully
-  - [ ] T0.6.8 — Install Vercel CLI locally: `pnpm add -g vercel` and run `vercel link`
-  - [ ] T0.6.9 — Create `.vercel/` directory (gitignored)
+  - [ ] T0.6.1 — Sign up / log in to Vercel with GitHub *(manual, dashboard)*
+  - [ ] T0.6.2 — Import the GitHub repo as a new project *(manual, dashboard)*
+  - [ ] T0.6.3 — Set framework preset = Next.js, build command = `pnpm build`, install = `pnpm install` *(manual; pnpm auto-detected via `packageManager`)*
+  - [ ] T0.6.4 — Add env vars to Vercel (placeholder values): `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `RESEND_API_KEY`, `SENTRY_DSN` *(manual; `.env.example` documents the shape)*
+  - [ ] T0.6.5 — Configure production branch = `master`; preview deploys on every PR *(manual, dashboard)*
+  - [ ] T0.6.6 — Trigger first deploy by pushing to `master` from local *(manual)*
+  - [ ] T0.6.7 — Verify deployed URL renders blank page successfully *(manual)*
+  - [x] T0.6.8 — Vercel CLI available locally (`vercel` 50.1.6 on PATH); run `vercel login && vercel link` against the project after step T0.6.2
+  - [x] T0.6.9 — `.vercel` gitignored
+- **Runbook**: `docs/runbook/vercel-setup.md`
 - **Acceptance**: First push to `master` triggers a successful Vercel deploy; PR creates a preview URL automatically.
 
 #### T0.7: TBC E-Commerce merchant application submitted
