@@ -1111,22 +1111,22 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 
 #### T0.6: Vercel project linked
 
-- [ ] **Status**: IN_PROGRESS (repo prep done; awaiting manual dashboard steps)
+- [x] **Status**: DONE
 - **Complexity**: S
 - **Dependencies**: T0.5
 - **Description**: Connect repo to Vercel for previews + prod deploys.
 - **Atomic tasks**:
-  - [ ] T0.6.1 — Sign up / log in to Vercel with GitHub *(manual, dashboard)*
-  - [ ] T0.6.2 — Import the GitHub repo as a new project *(manual, dashboard)*
-  - [ ] T0.6.3 — Set framework preset = Next.js, build command = `pnpm build`, install = `pnpm install` *(manual; pnpm auto-detected via `packageManager`)*
-  - [ ] T0.6.4 — Add env vars to Vercel (placeholder values): `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `RESEND_API_KEY`, `SENTRY_DSN` *(manual; `.env.example` documents the shape)*
-  - [ ] T0.6.5 — Configure production branch = `master`; preview deploys on every PR *(manual, dashboard)*
-  - [ ] T0.6.6 — Trigger first deploy by pushing to `master` from local *(manual)*
-  - [ ] T0.6.7 — Verify deployed URL renders blank page successfully *(manual)*
-  - [x] T0.6.8 — Vercel CLI available locally (`vercel` 50.1.6 on PATH); run `vercel login && vercel link` against the project after step T0.6.2
+  - [x] T0.6.1 — Signed in to Vercel with GitHub
+  - [x] T0.6.2 — Imported `BekaChkhiro/tutor-platform` as Vercel project `bekas-projects-37aab3eb/tutor`
+  - [x] T0.6.3 — Framework preset Next.js (auto-detected); pnpm picked up via `packageManager`
+  - [x] T0.6.4 — Env vars `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `RESEND_API_KEY`, `SENTRY_DSN` set on Vercel (placeholders for the three not yet provisioned)
+  - [x] T0.6.5 — Production branch = `master`; preview deploys auto-enabled for PRs
+  - [x] T0.6.6 — First production deploy triggered via PR #5 merge to `master`
+  - [x] T0.6.7 — Production URL renders the Next.js homepage (verified)
+  - [x] T0.6.8 — Vercel CLI 50.1.6 on PATH; `vercel link` ran against the project (`.vercel/project.json` written locally)
   - [x] T0.6.9 — `.vercel` gitignored
 - **Runbook**: `docs/runbook/vercel-setup.md`
-- **Acceptance**: First push to `master` triggers a successful Vercel deploy; PR creates a preview URL automatically.
+- **Acceptance**: First push to `master` triggers a successful Vercel deploy; PR creates a preview URL automatically. ✅ — PR #5 preview <https://tutor-olive-ten.vercel.app>; production deploy ready post-merge.
 
 #### T0.7: TBC E-Commerce merchant application submitted
 
