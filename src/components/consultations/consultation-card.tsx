@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ConsultationListItem } from '@/server/actions/consultations/fetch-consultations';
+import type { ConsultationListItem } from '@/server/actions/consultations/types';
 
 interface ConsultationCardProps {
   consultation: ConsultationListItem;

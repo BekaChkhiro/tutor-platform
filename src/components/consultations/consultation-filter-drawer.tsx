@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CategoryOption } from '@/server/actions/tutors/fetch-tutors';
-import type { ConsultationFilters } from '@/server/actions/consultations/fetch-consultations';
+import type { ConsultationFilters } from '@/server/actions/consultations/types';
 
 interface ConsultationFilterDrawerProps {
   categories: CategoryOption[];

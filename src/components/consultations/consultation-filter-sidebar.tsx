@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CategoryOption } from '@/server/actions/tutors/fetch-tutors';
-import type { ConsultationFilters } from '@/server/actions/consultations/fetch-consultations';
+import type { ConsultationFilters } from '@/server/actions/consultations/types';
 
 interface ConsultationFilterSidebarProps {
   categories: CategoryOption[];

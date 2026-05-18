@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-  fetchConsultations,
-  parseConsultationFilters,
-} from '@/server/actions/consultations/fetch-consultations';
+import { fetchConsultations } from '@/server/actions/consultations/fetch-consultations';
+import { parseConsultationFilters } from '@/server/actions/consultations/types';
 import { fetchCategories } from '@/server/actions/tutors/fetch-tutors';
 import { ConsultationCard } from '@/components/consultations/consultation-card';
 import { ConsultationFilterSidebar } from '@/components/consultations/consultation-filter-sidebar';
