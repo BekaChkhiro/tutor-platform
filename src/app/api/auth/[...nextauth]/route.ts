@@ -1,7 +1,3 @@
-import { NextResponse } from 'next/server';
+import { handlers } from '@/lib/auth/auth';
 
-async function handler() {
-  return NextResponse.json({ ok: true, auth: 'placeholder' });
-}
-
-export { handler as GET, handler as POST };
+export const { GET, POST } = handlers;
