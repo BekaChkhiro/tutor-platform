@@ -3,10 +3,31 @@ import Link from 'next/link';
 import { faqCategories } from '@/content/faq';
 import { FaqAccordion } from '@/components/ui/faq-accordion';
 
+const faqTitle = 'ხშირად დასმული კითხვები';
+const faqDescription =
+  'გაეცანით ხშირად დასმულ კითხვებს Tutor პლატფორმის გამოყენების, სპეციალისტების, გადახდებისა და ვიდეო სესიების შესახებ.';
+
 export const metadata: Metadata = {
-  title: 'ხშირად დასმული კითხვები — Tutor',
-  description:
-    'გაეცანით ხშირად დასმულ კითხვებს Tutor პლატფორმის გამოყენების, სპეციალისტების, გადახდებისა და ვიდეო სესიების შესახებ.',
+  title: faqTitle,
+  description: faqDescription,
+  alternates: {
+    canonical: '/faq',
+    languages: { 'ka-GE': '/faq' },
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'Tutor',
+    title: faqTitle,
+    description: faqDescription,
+    url: '/faq',
+    images: [{ url: '/api/og?title=FAQ', width: 1200, height: 630, alt: faqTitle }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: faqTitle,
+    description: faqDescription,
+    images: ['/api/og?title=FAQ'],
+  },
 };
 
 function buildFaqJsonLd() {

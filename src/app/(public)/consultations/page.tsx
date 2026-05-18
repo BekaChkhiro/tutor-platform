@@ -1,3 +1,13 @@
+import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Consultations',
+  description:
+    'Browse available consultation formats — fixed sessions, flexible bookings, and group classes.',
+  path: '/consultations',
+});
+
 export default function Page() {
   return (
     <main className="p-8">

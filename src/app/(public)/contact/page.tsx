@@ -3,10 +3,31 @@ import Link from 'next/link';
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { ContactForm } from '@/components/contact/contact-form';
 
+const contactTitle = 'Contact Us';
+const contactDescription =
+  'Get in touch with the Tutor platform team. We respond to all inquiries within 1–2 business days.';
+
 export const metadata: Metadata = {
-  title: 'Contact Us — Tutor',
-  description:
-    'Get in touch with the Tutor platform team. We respond to all inquiries within 1–2 business days.',
+  title: contactTitle,
+  description: contactDescription,
+  alternates: {
+    canonical: '/contact',
+    languages: { 'ka-GE': '/contact' },
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'Tutor',
+    title: contactTitle,
+    description: contactDescription,
+    url: '/contact',
+    images: [{ url: '/api/og?title=Contact+Us', width: 1200, height: 630, alt: contactTitle }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: contactTitle,
+    description: contactDescription,
+    images: ['/api/og?title=Contact+Us'],
+  },
 };
 
 export default function ContactPage() {
