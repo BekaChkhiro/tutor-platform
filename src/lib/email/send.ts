@@ -1,30 +1,31 @@
-interface SendEmailOptions {
+import * as React from 'react';
+import { getResendClient } from './client';
+
+interface SendEmailOptions<P extends Record<string, unknown>> {
   to: string;
   subject: string;
-  html: string;
+  template: React.ComponentType<P>;
+  props: P;
 }
 
-export async function sendEmail({ to, subject, html }: SendEmailOptions): Promise<void> {
-  if (!process.env.SMTP_HOST) {
-    console.warn('[email] SMTP_HOST not set — email not sent to:', to, '| subject:', subject);
+export async function sendEmail<P extends Record<string, unknown>>({
+  to,
+  subject,
+  template,
+  props,
+}: SendEmailOptions<P>): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY not set — skipping email to:', to);
     return;
   }
 
-  const fromAddress = process.env.EMAIL_FROM ?? 'noreply@tutorplatform.ge';
+  const from = process.env.EMAIL_FROM ?? 'Tutor Platform <noreply@tutorplatform.ge>';
+  const client = getResendClient();
 
-  // nodemailer is an optional peer dependency; install with: pnpm add nodemailer
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const nodemailer: any = await import('nodemailer' as string);
-
-  const transport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
+  await client.emails.send({
+    from,
+    to,
+    subject,
+    react: React.createElement(template, props),
   });
-
-  await transport.sendMail({ from: fromAddress, to, subject, html });
 }

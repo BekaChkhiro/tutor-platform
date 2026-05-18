@@ -14,7 +14,7 @@ declare module 'next-auth' {
       tutorStatus: TutorStatus | null;
       profileComplete: boolean;
       suspended: boolean;
-    } & Omit<import('next-auth').DefaultSession['user'], 'id'>;
+    } & Omit<NonNullable<import('next-auth').DefaultSession['user']>, 'id'>;
   }
 
   interface User {
