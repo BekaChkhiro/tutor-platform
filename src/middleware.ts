@@ -31,13 +31,18 @@ function hasSessionCookie(req: NextRequest): boolean {
 
 // Edge-runtime middleware. Performs only a cookie-presence check to avoid
 // pulling Prisma / bcrypt / pg into the Edge bundle (Auth.js + database session
-// strategy can't be validated in Edge anyway). Real session validation and the
-// profileComplete redirect happen in server components / route-group layouts.
+// strategy can't be validated in Edge anyway). Role/status checks happen in
+// server component layouts via src/lib/auth/guards.ts using the full auth().
+//
+// x-pathname is forwarded so server components can build a callbackUrl for
+// the /login redirect without parsing the request URL themselves.
 export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (isPublic(pathname)) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.set('x-pathname', pathname);
+    return res;
   }
 
   if (!hasSessionCookie(req)) {
@@ -47,7 +52,9 @@ export default function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  res.headers.set('x-pathname', pathname);
+  return res;
 }
 
 export const config = {

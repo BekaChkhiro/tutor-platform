@@ -1,20 +1,6 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth/auth';
+import { requireAdmin } from '@/lib/auth/guards';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-
-  if (!session) {
-    redirect('/login');
-  }
-
-  if (session.user.role !== 'ADMIN') {
-    redirect('/dashboard');
-  }
-
-  if (!session.user.profileComplete) {
-    redirect('/complete-profile');
-  }
-
+  await requireAdmin();
   return <>{children}</>;
 }
