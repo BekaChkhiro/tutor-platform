@@ -134,3 +134,18 @@ export async function fetchCategories(): Promise<CategoryOption[]> {
     orderBy: { sortOrder: 'asc' },
   });
 }
+
+export interface CategoryDetail {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  iconName: string | null;
+}
+
+export async function fetchCategoryBySlug(slug: string): Promise<CategoryDetail | null> {
+  return prisma.category.findUnique({
+    where: { slug },
+    select: { id: true, slug: true, name: true, description: true, iconName: true },
+  });
+}
