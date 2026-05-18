@@ -81,9 +81,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   callbacks: {
     // T1.2.10 — Reject suspended users on any provider
-    async signIn({ user }) {
-      if (user.suspended) return false;
-      return true;
+    async signIn({ user, account }) {
+      if (account?.provider === 'credentials') {
+        return !user.suspended;
+      }
+
+      if (!user.email) return true;
+
+      const dbUser = await prisma.user.findUnique({
+        where: { email: user.email },
+        select: { suspended: true },
+      });
+
+      return !dbUser?.suspended;
     },
 
     // T1.2.11 — Enrich session with role + tutorStatus

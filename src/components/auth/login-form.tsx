@@ -11,6 +11,8 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ callbackUrl = '/dashboard' }: LoginFormProps) {
+  const safeCallbackUrl =
+    callbackUrl.startsWith('/') && !callbackUrl.startsWith('//') ? callbackUrl : '/dashboard';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -21,25 +23,33 @@ export function LoginForm({ callbackUrl = '/dashboard' }: LoginFormProps) {
     setError(null);
     setLoading(true);
 
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
 
-    setLoading(false);
+      if (result?.error) {
+        setError('Invalid email or password.');
+        return;
+      }
 
-    if (result?.error) {
-      setError('Invalid email or password.');
-      return;
+      window.location.assign(safeCallbackUrl);
+    } catch {
+      setError('Unable to sign in right now. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    window.location.href = callbackUrl;
   }
 
   async function handleGoogle() {
     setError(null);
-    await signIn('google', { callbackUrl });
+    try {
+      await signIn('google', { callbackUrl: safeCallbackUrl });
+    } catch {
+      setError('Unable to continue with Google right now. Please try again.');
+    }
   }
 
   return (
@@ -62,7 +72,11 @@ export function LoginForm({ callbackUrl = '/dashboard' }: LoginFormProps) {
 
       <form onSubmit={handleCredentials} className="space-y-4">
         {error && (
-          <p className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border px-3 py-2 text-sm">
+          <p
+            role="alert"
+            aria-live="assertive"
+            className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border px-3 py-2 text-sm"
+          >
             {error}
           </p>
         )}
