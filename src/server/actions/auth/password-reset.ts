@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/db/prisma';
 import { sendEmail } from '@/lib/email/send';
+import { ResetPassword } from '@/lib/email/templates/ResetPassword';
 import { forgotPasswordSchema, resetPasswordSchema } from '@/lib/validators/password-reset';
 import type { ActionResult } from './register';
 
@@ -60,12 +61,8 @@ async function sendPasswordResetEmail(email: string, token: string): Promise<voi
   await sendEmail({
     to: email,
     subject: 'Reset your password — Tutor',
-    html: `
-      <p>You requested a password reset. Click the link below to set a new password.</p>
-      <p>The link expires in 1 hour.</p>
-      <p><a href="${url}">${url}</a></p>
-      <p>If you did not request this, you can safely ignore this email.</p>
-    `,
+    template: ResetPassword,
+    props: { url },
   });
 }
 
