@@ -1,9 +1,6 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth/auth';
+import { requireTutor } from '@/lib/auth/guards';
 
 export default async function TutorInfoLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (!session) redirect('/login');
-  if (session.user.role !== 'TUTOR') redirect('/dashboard');
+  await requireTutor();
   return <>{children}</>;
 }

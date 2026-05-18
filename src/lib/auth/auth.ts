@@ -13,6 +13,7 @@ declare module 'next-auth' {
       role: UserRole;
       tutorStatus: TutorStatus | null;
       profileComplete: boolean;
+      suspended: boolean;
     } & Omit<import('next-auth').DefaultSession['user'], 'id'>;
   }
 
@@ -108,10 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.role = dbUser?.role ?? 'USER';
       session.user.tutorStatus = dbUser?.tutor?.status ?? null;
       session.user.profileComplete = !!(dbUser?.phone && dbUser?.dob);
-
-      if (dbUser?.suspended) {
-        throw new Error('Account suspended');
-      }
+      session.user.suspended = dbUser?.suspended ?? false;
 
       return session;
     },

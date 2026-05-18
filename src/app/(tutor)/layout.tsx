@@ -1,6 +1,6 @@
-import { requireTutor } from '@/lib/auth/guards';
+import { requireApprovedTutor } from '@/lib/auth/guards';
 
 export default async function TutorLayout({ children }: { children: React.ReactNode }) {
-  await requireTutor();
+  await requireApprovedTutor();
   return <>{children}</>;
 }
