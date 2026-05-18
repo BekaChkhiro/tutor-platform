@@ -6,6 +6,6 @@ test.describe('homepage smoke', () => {
 
     const heading = page.getByRole('heading', { level: 1 });
     await expect(heading).toBeVisible();
-    await expect(heading).toHaveText('Tutor');
+    await expect(heading).toContainText('გიპოვე ექსპერტი');
   });
 });
