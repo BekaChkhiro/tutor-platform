@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/db/prisma';
 import { sendEmail } from '@/lib/email/send';
+import { VerifyEmail } from '@/lib/email/templates/VerifyEmail';
 import {
   userRegistrationSchema,
   tutorRegistrationSchema,
@@ -37,10 +38,8 @@ async function sendVerificationEmail(email: string, token: string): Promise<void
   await sendEmail({
     to: email,
     subject: 'Verify your email — Tutor',
-    html: `
-      <p>Welcome! Click the link below to verify your email address. The link expires in 24 hours.</p>
-      <p><a href="${url}">${url}</a></p>
-    `,
+    template: VerifyEmail,
+    props: { url },
   });
 }
 
