@@ -380,11 +380,14 @@ model Message {
 // ─── Support, admin log, ToS ───────────────────────────────────────────
 
 model SupportTicket {
-  id        String              @id @default(cuid())
-  userId    String?
-  subject   String
-  status    SupportTicketStatus @default(OPEN)
-  createdAt DateTime            @default(now())
+  id           String              @id @default(cuid())
+  userId       String?
+  subject      String
+  status       SupportTicketStatus @default(OPEN)
+  contactName  String?
+  contactEmail String?
+  body         String?             @db.Text
+  createdAt    DateTime            @default(now())
 
   user     User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   messages SupportMessage[]
