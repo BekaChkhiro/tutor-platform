@@ -1,16 +1,6 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth/auth';
+import { requireUser } from '@/lib/auth/guards';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-
-  if (!session) {
-    redirect('/login');
-  }
-
-  if (!session.user.profileComplete) {
-    redirect('/complete-profile');
-  }
-
+  await requireUser();
   return <>{children}</>;
 }
