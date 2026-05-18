@@ -12,6 +12,7 @@ import {
   maskGeorgianPhone,
 } from '@/lib/validators/registration';
 import { completeProfile } from '@/server/actions/auth/register';
+import { PhotoUpload } from '@/components/auth/photo-upload';
 
 interface CompleteProfileFormProps {
   userId: string;
@@ -88,14 +89,20 @@ export function CompleteProfileForm({
         </Field>
 
         {isТutor && (
-          <Field label="Gender" error={errors.gender?.message}>
-            <select {...register('gender')} className={inputCls(!!errors.gender)}>
-              <option value="">Select gender</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-              <option value="OTHER">Other / prefer not to say</option>
-            </select>
-          </Field>
+          <>
+            <Field label="Gender" error={errors.gender?.message}>
+              <select {...register('gender')} className={inputCls(!!errors.gender)}>
+                <option value="">Select gender</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other / prefer not to say</option>
+              </select>
+            </Field>
+
+            <Field label="Profile photo (optional)">
+              <PhotoUpload className="mt-1" />
+            </Field>
+          </>
         )}
 
         <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
