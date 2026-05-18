@@ -1428,61 +1428,62 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 
 #### T1.1: Database schema — core entities
 
-- [ ] **Status**: TODO
+- [x] **Status**: DONE
 - **Complexity**: L
 - **Dependencies**: T0.5
 - **Description**: Design and migrate the full v1 Prisma schema.
 - **Atomic tasks**:
-  - [ ] T1.1.1 — Define `User` model: id (cuid), email (unique), firstName, lastName, phone, dob, role (UserRole enum), suspended (Boolean), emailVerified (DateTime?), image, createdAt, updatedAt
-  - [ ] T1.1.2 — Define `Account`, `Session`, `VerificationToken` (NextAuth) per Auth.js Prisma adapter spec
-  - [ ] T1.1.3 — Define `Tutor` model: id, userId (unique FK), status (TutorStatus enum), slug (unique), headline, bio, photoUrl, introVideoUrl, gender, iban (encrypted), idDocument (encrypted), refundPolicy (Json?), createdAt, updatedAt
-  - [ ] T1.1.4 — Define `Skill`, `Certificate`, `Education`, `Experience` models, each linked to Tutor
-  - [ ] T1.1.5 — Define `Category` model: id, slug (unique), name, description, iconName, sortOrder
-  - [ ] T1.1.6 — Define `TutorCategory` join table (many-to-many)
-  - [ ] T1.1.7 — Define `Consultation` model: id, tutorId (FK), title, descriptionShort, descriptionLong, categoryId (FK), durationMinutes, priceGel (Decimal), bookingType (enum FIXED|FLEXIBLE), maxPerDay, advanceNoticeMinutes, archived (Boolean), createdAt, updatedAt
-  - [ ] T1.1.8 — Define `Availability` model: id, tutorId (FK), weekday (0–6), startTime (Time), endTime (Time)
-  - [ ] T1.1.9 — Define `AvailabilityException` model: id, tutorId, date, startTime, endTime, type (enum BLOCK|EXTRA)
-  - [ ] T1.1.10 — Define `Booking` model: id, userId, tutorId, consultationId, startTime (DateTime UTC), endTime, status (BookingStatus enum), expiresAt, reminder24SentAt, reminder1SentAt, cancellationReason, createdAt, updatedAt
-  - [ ] T1.1.11 — Define `Transaction` model: id, bookingId (FK), amountGel (Decimal), commissionGel (Decimal), payoutGel (Decimal), provider (enum TBC|BOG), providerRef, payoutStatus (PayoutStatus enum), paidAt, refundedAt, createdAt
-  - [ ] T1.1.12 — Define `Review` model: id, bookingId (FK unique), userId, tutorId, rating (Int 1–5), comment (Text?), createdAt
-  - [ ] T1.1.13 — Define `Message` model (chat): id, bookingId (FK), senderId (FK User), body, fileUrl, readAt, createdAt
-  - [ ] T1.1.14 — Define `SupportTicket` model: id, userId (FK nullable), subject, status (OPEN|IN_PROGRESS|RESOLVED|CLOSED), createdAt
-  - [ ] T1.1.15 — Define `SupportMessage` model (ticket replies)
-  - [ ] T1.1.16 — Define `AdminLog` model: id, adminId (FK User), action, targetType, targetId, details (Json), createdAt
-  - [ ] T1.1.17 — Define `TosAcceptance` model: id, userId, tosVersion, acceptedAt (for T8.6)
-  - [ ] T1.1.18 — Define enums: `UserRole` (USER, TUTOR, ADMIN), `TutorStatus` (PENDING_REVIEW, APPROVED, REJECTED, SUSPENDED), `BookingStatus` (PENDING, PAID, CONFIRMED, COMPLETED, CANCELLED, REFUNDED, NO_SHOW, EXPIRED), `PayoutStatus` (HELD, RELEASED, REFUNDED), `BookingType` (FIXED, FLEXIBLE), `ExceptionType` (BLOCK, EXTRA)
-  - [ ] T1.1.19 — Add unique constraint `@@unique([tutorId, startTime])` on Booking (race condition guard, §3.1)
-  - [ ] T1.1.20 — Add indices: `Booking(tutorId, status)`, `Booking(userId, status)`, `Booking(startTime)`, `Tutor(status)`, `Consultation(tutorId, archived)`
-  - [ ] T1.1.21 — Run `pnpm prisma migrate dev --name init` against Neon dev branch
-  - [ ] T1.1.22 — Verify all tables in `pnpm prisma studio`
-  - [ ] T1.1.23 — Commit migration file
+  - [x] T1.1.1 — Define `User` model: id (cuid), email (unique), firstName, lastName, phone, dob, role (UserRole enum), suspended (Boolean), emailVerified (DateTime?), image, createdAt, updatedAt
+  - [x] T1.1.2 — Define `Account`, `Session`, `VerificationToken` (NextAuth) per Auth.js Prisma adapter spec
+  - [x] T1.1.3 — Define `Tutor` model: id, userId (unique FK), status (TutorStatus enum), slug (unique), headline, bio, photoUrl, introVideoUrl, gender, iban (encrypted), idDocument (encrypted), refundPolicy (Json?), createdAt, updatedAt
+  - [x] T1.1.4 — Define `Skill`, `Certificate`, `Education`, `Experience` models, each linked to Tutor
+  - [x] T1.1.5 — Define `Category` model: id, slug (unique), name, description, iconName, sortOrder
+  - [x] T1.1.6 — Define `TutorCategory` join table (many-to-many)
+  - [x] T1.1.7 — Define `Consultation` model: id, tutorId (FK), title, descriptionShort, descriptionLong, categoryId (FK), durationMinutes, priceGel (Decimal), bookingType (enum FIXED|FLEXIBLE), maxPerDay, advanceNoticeMinutes, archived (Boolean), createdAt, updatedAt
+  - [x] T1.1.8 — Define `Availability` model: id, tutorId (FK), weekday (0–6), startTime (Time), endTime (Time)
+  - [x] T1.1.9 — Define `AvailabilityException` model: id, tutorId, date, startTime, endTime, type (enum BLOCK|EXTRA)
+  - [x] T1.1.10 — Define `Booking` model: id, userId, tutorId, consultationId, startTime (DateTime UTC), endTime, status (BookingStatus enum), expiresAt, reminder24SentAt, reminder1SentAt, cancellationReason, createdAt, updatedAt
+  - [x] T1.1.11 — Define `Transaction` model: id, bookingId (FK), amountGel (Decimal), commissionGel (Decimal), payoutGel (Decimal), provider (enum TBC|BOG), providerRef, payoutStatus (PayoutStatus enum), paidAt, refundedAt, createdAt
+  - [x] T1.1.12 — Define `Review` model: id, bookingId (FK unique), userId, tutorId, rating (Int 1–5), comment (Text?), createdAt
+  - [x] T1.1.13 — Define `Message` model (chat): id, bookingId (FK), senderId (FK User), body, fileUrl, readAt, createdAt
+  - [x] T1.1.14 — Define `SupportTicket` model: id, userId (FK nullable), subject, status (OPEN|IN_PROGRESS|RESOLVED|CLOSED), createdAt
+  - [x] T1.1.15 — Define `SupportMessage` model (ticket replies)
+  - [x] T1.1.16 — Define `AdminLog` model: id, adminId (FK User), action, targetType, targetId, details (Json), createdAt
+  - [x] T1.1.17 — Define `TosAcceptance` model: id, userId, tosVersion, acceptedAt (for T8.6)
+  - [x] T1.1.18 — Define enums: `UserRole` (USER, TUTOR, ADMIN), `TutorStatus` (PENDING_REVIEW, APPROVED, REJECTED, SUSPENDED), `BookingStatus` (PENDING, PAID, CONFIRMED, COMPLETED, CANCELLED, REFUNDED, NO_SHOW, EXPIRED), `PayoutStatus` (HELD, RELEASED, REFUNDED), `BookingType` (FIXED, FLEXIBLE), `ExceptionType` (BLOCK, EXTRA)
+  - [x] T1.1.19 — Add unique constraint `@@unique([tutorId, startTime])` on Booking (race condition guard, §3.1)
+  - [x] T1.1.20 — Add indices: `Booking(tutorId, status)`, `Booking(userId, status)`, `Booking(startTime)`, `Tutor(status)`, `Consultation(tutorId, archived)`
+  - [x] T1.1.21 — Run `pnpm prisma migrate dev --name init` against Neon dev branch
+  - [x] T1.1.22 — Verify all tables in `pnpm prisma studio` (22 tables + 8 enums applied; verified via `prisma migrate dev` output)
+  - [x] T1.1.23 — Commit migration file
+- **Notes**: Added two fields beyond the original spec — `User.passwordHash` (required for T1.2.8 Credentials provider) and `PaymentProvider` / `SupportTicketStatus` enums (T1.1.11/T1.1.14 enum bodies inline). Auth.js NextAuth fields (`refresh_token`, `access_token`, `id_token`) typed as `@db.Text` per Auth.js Prisma adapter spec.
 - **Acceptance**: Migration applies cleanly; all tables visible in Prisma Studio.
 
 #### T1.2: Auth.js setup — Google OAuth + credentials
 
-- [ ] **Status**: TODO
+- [x] **Status**: DONE
 - **Complexity**: M
 - **Dependencies**: T1.1
 - **Description**: Auth.js v5 with Prisma adapter, Google + Credentials providers.
 - **Atomic tasks**:
-  - [ ] T1.2.1 — Install: `pnpm add next-auth@beta @auth/prisma-adapter bcrypt` and `pnpm add -D @types/bcrypt`
-  - [ ] T1.2.2 — Create `src/lib/auth/auth.ts` with `NextAuth({...})` config
-  - [ ] T1.2.3 — Configure Prisma adapter
-  - [ ] T1.2.4 — Set session strategy = `"database"` (NOT JWT — for instant revocation)
-  - [ ] T1.2.5 — Register Google OAuth app at console.cloud.google.com (callback `<domain>/api/auth/callback/google`)
-  - [ ] T1.2.6 — Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` to `.env.local` + Vercel
-  - [ ] T1.2.7 — Add Google provider to Auth config
-  - [ ] T1.2.8 — Add Credentials provider with bcrypt password verify
-  - [ ] T1.2.9 — Implement `authorize()` for Credentials: lookup user, verify password, enforce `emailVerified !== null`
-  - [ ] T1.2.10 — Implement `signIn` callback: reject if user is `suspended`
-  - [ ] T1.2.11 — Implement `session` callback: enrich session with `role`, `tutorStatus` (if tutor)
-  - [ ] T1.2.12 — Create route handler `src/app/api/auth/[...nextauth]/route.ts`
-  - [ ] T1.2.13 — Generate `NEXTAUTH_SECRET` via `openssl rand -base64 32`, add to env
-  - [ ] T1.2.14 — Create `/login` page with Google button + Credentials form
-  - [ ] T1.2.15 — Create `/register` placeholder page (T1.3 fills it)
-  - [ ] T1.2.16 — Create `/forgot-password` placeholder (T1.4 fills it)
-  - [ ] T1.2.17 — Verify Google OAuth flow end-to-end manually
-  - [ ] T1.2.18 — Verify Credentials login with a manually-seeded user
+  - [x] T1.2.1 — Install: `pnpm add next-auth@beta @auth/prisma-adapter bcrypt` and `pnpm add -D @types/bcrypt`
+  - [x] T1.2.2 — Create `src/lib/auth/auth.ts` with `NextAuth({...})` config
+  - [x] T1.2.3 — Configure Prisma adapter
+  - [x] T1.2.4 — Set session strategy = `"database"` (NOT JWT — for instant revocation)
+  - [x] T1.2.5 — Register Google OAuth app at console.cloud.google.com (callback `<domain>/api/auth/callback/google`)
+  - [x] T1.2.6 — Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` to `.env.local` + Vercel
+  - [x] T1.2.7 — Add Google provider to Auth config
+  - [x] T1.2.8 — Add Credentials provider with bcrypt password verify
+  - [x] T1.2.9 — Implement `authorize()` for Credentials: lookup user, verify password, enforce `emailVerified !== null`
+  - [x] T1.2.10 — Implement `signIn` callback: reject if user is `suspended`
+  - [x] T1.2.11 — Implement `session` callback: enrich session with `role`, `tutorStatus` (if tutor)
+  - [x] T1.2.12 — Create route handler `src/app/api/auth/[...nextauth]/route.ts`
+  - [x] T1.2.13 — Generate `NEXTAUTH_SECRET` via `openssl rand -base64 32`, add to env
+  - [x] T1.2.14 — Create `/login` page with Google button + Credentials form
+  - [x] T1.2.15 — Create `/register` placeholder page (T1.3 fills it)
+  - [x] T1.2.16 — Create `/forgot-password` placeholder (T1.4 fills it)
+  - [x] T1.2.17 — Verify Google OAuth flow end-to-end manually
+  - [x] T1.2.18 — Verify Credentials login with a manually-seeded user
 - **Acceptance**: Both providers produce a logged-in database session; suspended users cannot log in.
 
 #### T1.3: Registration forms (user + tutor)
