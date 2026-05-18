@@ -1461,29 +1461,29 @@ Each task: status, complexity (S/M/L/XL — work hours roughly 2/8/24/40+), depe
 
 #### T1.2: Auth.js setup — Google OAuth + credentials
 
-- [ ] **Status**: TODO
+- [x] **Status**: DONE
 - **Complexity**: M
 - **Dependencies**: T1.1
 - **Description**: Auth.js v5 with Prisma adapter, Google + Credentials providers.
 - **Atomic tasks**:
-  - [ ] T1.2.1 — Install: `pnpm add next-auth@beta @auth/prisma-adapter bcrypt` and `pnpm add -D @types/bcrypt`
-  - [ ] T1.2.2 — Create `src/lib/auth/auth.ts` with `NextAuth({...})` config
-  - [ ] T1.2.3 — Configure Prisma adapter
-  - [ ] T1.2.4 — Set session strategy = `"database"` (NOT JWT — for instant revocation)
-  - [ ] T1.2.5 — Register Google OAuth app at console.cloud.google.com (callback `<domain>/api/auth/callback/google`)
-  - [ ] T1.2.6 — Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` to `.env.local` + Vercel
-  - [ ] T1.2.7 — Add Google provider to Auth config
-  - [ ] T1.2.8 — Add Credentials provider with bcrypt password verify
-  - [ ] T1.2.9 — Implement `authorize()` for Credentials: lookup user, verify password, enforce `emailVerified !== null`
-  - [ ] T1.2.10 — Implement `signIn` callback: reject if user is `suspended`
-  - [ ] T1.2.11 — Implement `session` callback: enrich session with `role`, `tutorStatus` (if tutor)
-  - [ ] T1.2.12 — Create route handler `src/app/api/auth/[...nextauth]/route.ts`
-  - [ ] T1.2.13 — Generate `NEXTAUTH_SECRET` via `openssl rand -base64 32`, add to env
-  - [ ] T1.2.14 — Create `/login` page with Google button + Credentials form
-  - [ ] T1.2.15 — Create `/register` placeholder page (T1.3 fills it)
-  - [ ] T1.2.16 — Create `/forgot-password` placeholder (T1.4 fills it)
-  - [ ] T1.2.17 — Verify Google OAuth flow end-to-end manually
-  - [ ] T1.2.18 — Verify Credentials login with a manually-seeded user
+  - [x] T1.2.1 — Install: `pnpm add next-auth@beta @auth/prisma-adapter bcrypt` and `pnpm add -D @types/bcrypt`
+  - [x] T1.2.2 — Create `src/lib/auth/auth.ts` with `NextAuth({...})` config
+  - [x] T1.2.3 — Configure Prisma adapter
+  - [x] T1.2.4 — Set session strategy = `"database"` (NOT JWT — for instant revocation)
+  - [x] T1.2.5 — Register Google OAuth app at console.cloud.google.com (callback `<domain>/api/auth/callback/google`)
+  - [x] T1.2.6 — Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` to `.env.local` + Vercel
+  - [x] T1.2.7 — Add Google provider to Auth config
+  - [x] T1.2.8 — Add Credentials provider with bcrypt password verify
+  - [x] T1.2.9 — Implement `authorize()` for Credentials: lookup user, verify password, enforce `emailVerified !== null`
+  - [x] T1.2.10 — Implement `signIn` callback: reject if user is `suspended`
+  - [x] T1.2.11 — Implement `session` callback: enrich session with `role`, `tutorStatus` (if tutor)
+  - [x] T1.2.12 — Create route handler `src/app/api/auth/[...nextauth]/route.ts`
+  - [x] T1.2.13 — Generate `NEXTAUTH_SECRET` via `openssl rand -base64 32`, add to env
+  - [x] T1.2.14 — Create `/login` page with Google button + Credentials form
+  - [x] T1.2.15 — Create `/register` placeholder page (T1.3 fills it)
+  - [x] T1.2.16 — Create `/forgot-password` placeholder (T1.4 fills it)
+  - [x] T1.2.17 — Verify Google OAuth flow end-to-end manually
+  - [x] T1.2.18 — Verify Credentials login with a manually-seeded user
 - **Acceptance**: Both providers produce a logged-in database session; suspended users cannot log in.
 
 #### T1.3: Registration forms (user + tutor)
