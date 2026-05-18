@@ -1,3 +1,4 @@
+@config '../../tailwind.config.ts';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -134,9 +135,22 @@ body {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-neutral-50 leading-[1.6] text-neutral-900;
   }
   html {
     @apply font-sans;
+  }
+  *:focus-visible {
+    @apply shadow-focus outline-none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
