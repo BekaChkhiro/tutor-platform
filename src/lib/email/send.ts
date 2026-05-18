@@ -1,30 +1,35 @@
-interface SendEmailOptions {
-  to: string;
+import React from 'react';
+import { getResend } from './client';
+
+const FROM = process.env.EMAIL_FROM ?? 'no-reply@tutorplatform.ge';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function sendEmail<TProps extends Record<string, any>>({
+  template: Template,
+  to,
+  subject,
+  props,
+}: {
+  template: React.ComponentType<TProps>;
+  to: string | string[];
   subject: string;
-  html: string;
-}
+  props: TProps;
+}): Promise<void> {
+  try {
+    const { error } = await getResend().emails.send({
+      from: FROM,
+      to,
+      subject,
+      react: React.createElement(Template, props),
+    });
 
-export async function sendEmail({ to, subject, html }: SendEmailOptions): Promise<void> {
-  if (!process.env.SMTP_HOST) {
-    console.warn('[email] SMTP_HOST not set — email not sent to:', to, '| subject:', subject);
-    return;
+    if (error) {
+      // TODO: replace with error-tracker breadcrumb once T1.8 tooling is decided
+      console.error('[email] send failed', { to, subject, error });
+      throw new Error(`Email send failed: ${error.message}`);
+    }
+  } catch (err) {
+    console.error('[email] unexpected error', { to, subject, err });
+    throw err;
   }
-
-  const fromAddress = process.env.EMAIL_FROM ?? 'noreply@tutorplatform.ge';
-
-  // nodemailer is an optional peer dependency; install with: pnpm add nodemailer
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const nodemailer: any = await import('nodemailer' as string);
-
-  const transport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  await transport.sendMail({ from: fromAddress, to, subject, html });
 }

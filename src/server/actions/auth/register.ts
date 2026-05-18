@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/db/prisma';
 import { sendEmail } from '@/lib/email/send';
+import { VerifyEmail } from '@/lib/email/templates/VerifyEmail';
 import {
   userRegistrationSchema,
   tutorRegistrationSchema,
@@ -32,15 +33,17 @@ function verifyUrl(token: string): string {
   return `${base}/verify-email?token=${token}`;
 }
 
-async function sendVerificationEmail(email: string, token: string): Promise<void> {
+async function sendVerificationEmail(
+  email: string,
+  firstName: string,
+  token: string,
+): Promise<void> {
   const url = verifyUrl(token);
   await sendEmail({
+    template: VerifyEmail,
     to: email,
-    subject: 'Verify your email — Tutor',
-    html: `
-      <p>Welcome! Click the link below to verify your email address. The link expires in 24 hours.</p>
-      <p><a href="${url}">${url}</a></p>
-    `,
+    subject: 'Verify your email — TutorPlatform',
+    props: { firstName, verifyUrl: url },
   });
 }
 
@@ -72,7 +75,7 @@ export async function registerUser(raw: unknown): Promise<ActionResult<{ email: 
   });
 
   const token = await generateVerifyToken(email);
-  await sendVerificationEmail(email, token);
+  await sendVerificationEmail(email, firstName, token);
 
   return { success: true, data: { email } };
 }
@@ -114,7 +117,7 @@ export async function registerTutor(raw: unknown): Promise<ActionResult<{ email:
   });
 
   const token = await generateVerifyToken(email);
-  await sendVerificationEmail(email, token);
+  await sendVerificationEmail(email, firstName, token);
 
   return { success: true, data: { email } };
 }
