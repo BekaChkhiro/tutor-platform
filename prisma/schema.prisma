@@ -247,6 +247,7 @@ model Category {
 model TutorCategory {
   tutorId    String
   categoryId String
+  isPrimary  Boolean @default(false)
 
   tutor    Tutor    @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)

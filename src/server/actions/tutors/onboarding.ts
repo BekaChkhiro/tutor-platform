@@ -51,7 +51,10 @@ export async function loadOnboardingData(userId: string) {
         },
         orderBy: { sortOrder: 'asc' },
       },
-      categories: { select: { categoryId: true } },
+      categories: {
+        select: { categoryId: true, isPrimary: true },
+        orderBy: [{ isPrimary: 'desc' }, { categoryId: 'asc' }],
+      },
     },
   });
 }
@@ -111,9 +114,10 @@ export async function saveStep3(raw: unknown): Promise<ActionResult> {
     }),
     prisma.tutorCategory.deleteMany({ where: { tutorId: tutor.id } }),
     prisma.tutorCategory.createMany({
-      data: [...new Set(parsed.data.categoryIds)].map((categoryId) => ({
+      data: [...new Set(parsed.data.categoryIds)].map((categoryId, i) => ({
         tutorId: tutor.id,
         categoryId,
+        isPrimary: i === 0,
       })),
     }),
     prisma.tutor.update({
