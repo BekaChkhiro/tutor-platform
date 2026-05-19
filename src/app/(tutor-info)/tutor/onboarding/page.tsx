@@ -29,6 +29,7 @@ export default async function TutorOnboardingPage() {
     headline: data.headline,
     bio: data.bio,
     photoUrl: data.photoUrl,
+    introVideoUrl: data.introVideoUrl,
     skills: data.skills,
     categories: data.categories,
     educations: data.educations,

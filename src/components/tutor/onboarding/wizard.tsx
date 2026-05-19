@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PhotoUpload } from '@/components/auth/photo-upload';
+import { VideoUpload } from '@/components/auth/video-upload';
 import {
   step1Schema,
   step4Schema,
@@ -34,6 +35,7 @@ export interface OnboardingData {
   headline: string | null;
   bio: string | null;
   photoUrl: string | null;
+  introVideoUrl: string | null;
   skills: { name: string }[];
   categories: { categoryId: string }[];
   educations: {
@@ -236,7 +238,7 @@ function Step1({
   );
 }
 
-// ─── Step 2: Photo upload ──────────────────────────────────────────────────
+// ─── Step 2: Photo & video ─────────────────────────────────────────────────
 
 function Step2({
   initial,
@@ -248,24 +250,42 @@ function Step2({
   onBack: () => void;
 }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(initial.photoUrl);
+  const [introVideoUrl, setIntroVideoUrl] = useState<string | null>(initial.introVideoUrl);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold">Profile photo</h2>
+        <h2 className="text-xl font-semibold">Photo &amp; intro video</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Upload a professional photo. Students are more likely to book tutors with a clear photo.
+          A professional photo and a short intro video help students choose the right tutor.
         </p>
       </div>
 
-      <PhotoUpload currentPhotoUrl={photoUrl} onUploaded={(url) => setPhotoUrl(url)} />
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">
+          Profile photo
+        </h3>
+        <PhotoUpload currentPhotoUrl={photoUrl} onUploaded={(url) => setPhotoUrl(url)} />
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">Intro video</h3>
+        <p className="text-muted-foreground text-xs">
+          Record a short video (up to 60 s) introducing yourself and your teaching style.
+        </p>
+        <VideoUpload
+          currentVideoUrl={introVideoUrl}
+          onUploaded={(url) => setIntroVideoUrl(url)}
+          onDeleted={() => setIntroVideoUrl(null)}
+        />
+      </div>
 
       <div className="flex justify-between">
         <Button type="button" variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button type="button" onClick={() => onNext({ photoUrl })}>
-          {photoUrl ? 'Save & continue' : 'Skip for now'}
+        <Button type="button" onClick={() => onNext({ photoUrl, introVideoUrl })}>
+          {photoUrl || introVideoUrl ? 'Save & continue' : 'Skip for now'}
         </Button>
       </div>
     </div>

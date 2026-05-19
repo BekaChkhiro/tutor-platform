@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   ListObjectsV2Command,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -68,4 +69,23 @@ export async function deleteObjectsByPrefix(prefix: string): Promise<void> {
 export function photoVariantUrl(userId: string, size: 200 | 400 | 800): string {
   const base = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '');
   return `${base}/profile_photos/${userId}/${size}.webp`;
+}
+
+export function introVideoPublicUrl(userId: string): string {
+  const base = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '');
+  return `${base}/intro_videos/${userId}/video`;
+}
+
+export function introPosterPublicUrl(userId: string): string {
+  const base = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '');
+  return `${base}/intro_videos/${userId}/poster.jpg`;
+}
+
+export async function objectExists(key: string): Promise<boolean> {
+  try {
+    await client().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
+    return true;
+  } catch {
+    return false;
+  }
 }
