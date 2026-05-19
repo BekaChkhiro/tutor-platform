@@ -134,3 +134,10 @@ export async function fetchCategories() {
     select: { slug: true, name: true },
   });
 }
+
+export async function fetchCategoryBySlug(slug: string) {
+  return prisma.category.findUnique({
+    where: { slug },
+    select: { id: true, slug: true, name: true, description: true, iconName: true },
+  });
+}
