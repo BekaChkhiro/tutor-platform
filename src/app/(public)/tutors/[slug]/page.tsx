@@ -63,15 +63,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     })),
   };
 
+  const ogImage = `/api/og?title=${encodeURIComponent(name)}&subtitle=${encodeURIComponent(headline)}`;
+
   return {
     title: `${name} — ${headline || 'სპეციალისტი'} · Tutor`,
     description,
-    alternates: { canonical: `/tutors/${slug}` },
+    alternates: {
+      canonical: `/tutors/${slug}`,
+      languages: { 'ka-GE': `/tutors/${slug}` },
+    },
     openGraph: {
       title: `${name} · Tutor`,
       description,
       type: 'profile',
       locale: 'ka_GE',
+      images: [{ url: ogImage, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${name} · Tutor`,
+      description,
+      images: [ogImage],
     },
     other: {
       'script:ld+json': JSON.stringify(jsonLd),

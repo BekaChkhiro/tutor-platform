@@ -1,15 +1,28 @@
 import type { Metadata } from 'next';
 import { ContactForm } from '@/components/contact/contact-form';
 
+const TITLE = 'კონტაქტი — Tutor';
+const DESCRIPTION = 'დაგვიკავშირდით ნებისმიერი კითხვით. ჩვენ სიამოვნებით დაგეხმარებით.';
+
 export const metadata: Metadata = {
-  title: 'კონტაქტი — Tutor',
-  description: 'დაგვიკავშირდით ნებისმიერი კითხვით. ჩვენ სიამოვნებით დაგეხმარებით.',
-  alternates: { canonical: '/contact' },
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: {
+    canonical: '/contact',
+    languages: { 'ka-GE': '/contact' },
+  },
   openGraph: {
-    title: 'კონტაქტი — Tutor',
-    description: 'დაგვიკავშირდით ნებისმიერი კითხვით. ჩვენ სიამოვნებით დაგეხმარებით.',
+    title: TITLE,
+    description: DESCRIPTION,
     type: 'website',
     locale: 'ka_GE',
+    images: [{ url: '/api/og', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ['/api/og'],
   },
 };
 

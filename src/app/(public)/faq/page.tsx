@@ -2,17 +2,29 @@ import type { Metadata } from 'next';
 import { FAQ_CATEGORIES } from '@/content/faq';
 import { FaqAccordion } from '@/components/faq/faq-accordion';
 
+const TITLE = 'ხშირად დასმული კითხვები — Tutor';
+const DESCRIPTION =
+  'პასუხები ყველაზე გავრცელებულ კითხვებზე: ექსპერტები, კონსულტაციები, გადახდა და ანგარიშის მართვა.';
+
 export const metadata: Metadata = {
-  title: 'ხშირად დასმული კითხვები — Tutor',
-  description:
-    'პასუხები ყველაზე გავრცელებულ კითხვებზე: ექსპერტები, კონსულტაციები, გადახდა და ანგარიშის მართვა.',
-  alternates: { canonical: '/faq' },
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: {
+    canonical: '/faq',
+    languages: { 'ka-GE': '/faq' },
+  },
   openGraph: {
-    title: 'ხშირად დასმული კითხვები — Tutor',
-    description:
-      'პასუხები ყველაზე გავრცელებულ კითხვებზე: ექსპერტები, კონსულტაციები, გადახდა და ანგარიშის მართვა.',
+    title: TITLE,
+    description: DESCRIPTION,
     type: 'website',
     locale: 'ka_GE',
+    images: [{ url: '/api/og', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ['/api/og'],
   },
 };
 
