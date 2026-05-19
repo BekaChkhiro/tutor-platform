@@ -14,6 +14,7 @@ declare module 'next-auth' {
       tutorStatus: TutorStatus | null;
       profileComplete: boolean;
       suspended: boolean;
+      onboardingComplete: boolean;
     } & Omit<NonNullable<import('next-auth').DefaultSession['user']>, 'id'>;
   }
 
@@ -30,6 +31,7 @@ interface AppJWT {
   tutorStatus?: TutorStatus | null;
   profileComplete?: boolean;
   suspended?: boolean;
+  onboardingComplete?: boolean;
 }
 
 // JWT strategy is required because Credentials provider is incompatible
@@ -121,7 +123,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (t.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: t.id },
-          include: { tutor: { select: { status: true } } },
+          include: { tutor: { select: { status: true, onboardingComplete: true } } },
         });
 
         if (dbUser) {
@@ -129,6 +131,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           t.tutorStatus = dbUser.tutor?.status ?? null;
           t.profileComplete = !!(dbUser.phone && dbUser.dob);
           t.suspended = dbUser.suspended;
+          t.onboardingComplete = dbUser.tutor?.onboardingComplete ?? false;
         }
       }
 
@@ -143,6 +146,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.tutorStatus = t.tutorStatus ?? null;
       session.user.profileComplete = t.profileComplete ?? false;
       session.user.suspended = t.suspended ?? false;
+      session.user.onboardingComplete = t.onboardingComplete ?? false;
 
       return session;
     },

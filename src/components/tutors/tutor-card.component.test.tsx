@@ -18,6 +18,8 @@ const mockTutor: TutorListItem = {
   iban: null,
   idDocument: null,
   refundPolicy: null,
+  onboardingStep: 1,
+  onboardingComplete: true,
   status: 'APPROVED',
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
