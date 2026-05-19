@@ -36,7 +36,10 @@ export async function requireApprovedTutor(): Promise<Session> {
   const session = await requireTutor();
   const status = session.user.tutorStatus;
   if (status === 'REJECTED' || status === 'SUSPENDED') redirect('/tutor/rejected');
-  if (status !== 'APPROVED') redirect('/tutor/pending-status');
+  if (status !== 'APPROVED') {
+    if (!session.user.onboardingComplete) redirect('/tutor/onboarding');
+    redirect('/tutor/pending-status');
+  }
   return session;
 }
 

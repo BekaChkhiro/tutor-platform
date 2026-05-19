@@ -146,11 +146,13 @@ model Tutor {
   photoUrl      String?
   introVideoUrl String?
   gender        String?
-  iban          String?
-  idDocument    String?
-  refundPolicy  Json?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  iban               String?
+  idDocument         String?
+  refundPolicy       Json?
+  onboardingStep     Int     @default(1)
+  onboardingComplete Boolean @default(false)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   skills                 Skill[]
