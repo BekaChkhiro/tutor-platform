@@ -2,14 +2,6 @@
   "ci": {
     "collect": {
       "numberOfRuns": 1,
-      "startServerCommand": "pnpm start",
-      "url": [
-        "http://localhost:3000/",
-        "http://localhost:3000/tutors",
-        "http://localhost:3000/faq",
-        "http://localhost:3000/contact",
-        "http://localhost:3000/consultations"
-      ],
       "settings": {
         "preset": "desktop"
       }
