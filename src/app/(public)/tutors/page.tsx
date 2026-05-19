@@ -14,10 +14,26 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const params = await searchParams;
   const base = 'ექსპერტები — Tutor';
   const title = params.category ? `${params.category} · ${base}` : base;
+  const description = 'დადასტურებული სპეციალისტების სია. გაფილტრე კატეგორიით, ფასით ან რეიტინგით.';
   return {
     title,
-    description: 'დადასტურებული სპეციალისტების სია. გაფილტრე კატეგორიით, ფასით ან რეიტინგით.',
-    alternates: { canonical: '/tutors' },
+    description,
+    alternates: {
+      canonical: '/tutors',
+      languages: { 'ka-GE': '/tutors' },
+    },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      locale: 'ka_GE',
+      images: [{ url: '/api/og', width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
   };
 }
 

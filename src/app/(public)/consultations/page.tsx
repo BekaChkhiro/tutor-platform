@@ -9,10 +9,29 @@ import { ConsultationFilterSidebar } from '@/components/consultations/consultati
 import { ConsultationFilterDrawer } from '@/components/consultations/consultation-filter-drawer';
 import { ConsultationPagination } from '@/components/consultations/consultation-pagination';
 
+const TITLE = 'კონსულტაციები — Tutor';
+const DESCRIPTION = 'იპოვე შენთვის სასურველი კონსულტაცია. გაფილტრე კატეგორიით, ფასით ან თარიღით.';
+
 export const metadata: Metadata = {
-  title: 'კონსულტაციები — Tutor',
-  description: 'იპოვე შენთვის სასურველი კონსულტაცია. გაფილტრე კატეგორიით, ფასით ან თარიღით.',
-  alternates: { canonical: '/consultations' },
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: {
+    canonical: '/consultations',
+    languages: { 'ka-GE': '/consultations' },
+  },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    type: 'website',
+    locale: 'ka_GE',
+    images: [{ url: '/api/og', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ['/api/og'],
+  },
 };
 
 interface PageProps {
