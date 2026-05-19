@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Star } from 'lucide-react';
 import { prisma } from '@/lib/db/prisma';
+import { TutorCarousel } from './tutor-carousel';
 
 export const revalidate = 60;
 
@@ -126,11 +127,7 @@ export async function FeaturedTutors() {
             ყველა ნახვა →
           </Link>
         </div>
-        <div
-          className="scrollbar-hide -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6"
-          style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
-          aria-label="ექსპერტების კარუსელი"
-        >
+        <TutorCarousel>
           {tutors.map((tutor) => (
             <div
               key={tutor.id}
@@ -140,7 +137,7 @@ export async function FeaturedTutors() {
               <TutorCard tutor={tutor} />
             </div>
           ))}
-        </div>
+        </TutorCarousel>
         <p className="text-muted-foreground mt-3 text-center text-xs md:hidden">გადაფურცლე →</p>
       </div>
     </section>
