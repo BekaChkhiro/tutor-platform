@@ -24,10 +24,20 @@ declare module 'next-auth' {
   }
 }
 
+interface AppJWT {
+  id?: string;
+  role?: UserRole;
+  tutorStatus?: TutorStatus | null;
+  profileComplete?: boolean;
+  suspended?: boolean;
+}
+
+// JWT strategy is required because Credentials provider is incompatible
+// with database sessions in Auth.js v5.
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
 
-  session: { strategy: 'database' },
+  session: { strategy: 'jwt' },
 
   pages: {
     signIn: '/login',
@@ -98,18 +108,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return !dbUser?.suspended;
     },
 
-    // T1.2.11 — Enrich session with role + tutorStatus
-    async session({ session, user }) {
-      const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        include: { tutor: { select: { status: true } } },
-      });
+    // T1.2.11 — Enrich JWT with the user id at sign-in, then refresh role /
+    // status / suspended on every request so DB changes (suspensions,
+    // tutor approvals, profile completion) take effect without re-login.
+    async jwt({ token, user }) {
+      const t = token as AppJWT;
 
-      session.user.id = user.id;
-      session.user.role = dbUser?.role ?? 'USER';
-      session.user.tutorStatus = dbUser?.tutor?.status ?? null;
-      session.user.profileComplete = !!(dbUser?.phone && dbUser?.dob);
-      session.user.suspended = dbUser?.suspended ?? false;
+      if (user?.id) {
+        t.id = user.id;
+      }
+
+      if (t.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: t.id },
+          include: { tutor: { select: { status: true } } },
+        });
+
+        if (dbUser) {
+          t.role = dbUser.role;
+          t.tutorStatus = dbUser.tutor?.status ?? null;
+          t.profileComplete = !!(dbUser.phone && dbUser.dob);
+          t.suspended = dbUser.suspended;
+        }
+      }
+
+      return token;
+    },
+
+    async session({ session, token }) {
+      const t = token as AppJWT;
+
+      if (t.id) session.user.id = t.id;
+      session.user.role = t.role ?? 'USER';
+      session.user.tutorStatus = t.tutorStatus ?? null;
+      session.user.profileComplete = t.profileComplete ?? false;
+      session.user.suspended = t.suspended ?? false;
 
       return session;
     },
