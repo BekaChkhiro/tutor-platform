@@ -82,10 +82,33 @@ jobs:
         with:
           ref: ${{ github.event.deployment.sha }}
 
+      - name: Build Lighthouse config (inject bypass header when set)
+        id: lhci-cfg
+        env:
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          BASE_URL: ${{ github.event.deployment_status.target_url }}
+        run: |
+          if [ -n "$BYPASS" ]; then
+            python3 - <<'PY'
+import json, os
+with open('.lighthouserc.json') as f:
+    cfg = json.load(f)
+cfg['ci']['collect']['settings']['extraHeaders'] = {
+    'x-vercel-protection-bypass': os.environ['BYPASS']
+}
+cfg['ci']['collect']['url'] = [os.environ['BASE_URL']]
+with open('.lighthouserc.lhci.json', 'w') as f:
+    json.dump(cfg, f, indent=2)
+PY
+            echo "config=.lighthouserc.lhci.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "config=.lighthouserc.json" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
           urls: ${{ github.event.deployment_status.target_url }}
-          configPath: ./.lighthouserc.json
+          configPath: ${{ steps.lhci-cfg.outputs.config }}
           uploadArtifacts: true
           temporaryPublicStorage: true
