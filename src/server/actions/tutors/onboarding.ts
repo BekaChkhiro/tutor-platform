@@ -86,7 +86,10 @@ export async function saveStep3(raw: unknown): Promise<ActionResult> {
     }),
     prisma.tutorCategory.deleteMany({ where: { tutorId: tutor.id } }),
     prisma.tutorCategory.createMany({
-      data: parsed.data.categoryIds.map((categoryId) => ({ tutorId: tutor.id, categoryId })),
+      data: [...new Set(parsed.data.categoryIds)].map((categoryId) => ({
+        tutorId: tutor.id,
+        categoryId,
+      })),
     }),
     prisma.tutor.update({
       where: { id: tutor.id },
@@ -196,6 +199,10 @@ export async function submitForReview(): Promise<ActionResult> {
     include: { user: { select: { email: true, firstName: true, lastName: true } } },
   });
   if (!tutorWithUser) return { success: false, error: 'Tutor not found' };
+
+  if (!tutorWithUser.headline?.trim() || !tutorWithUser.bio?.trim()) {
+    return { success: false, error: 'Complete step 1 (headline and bio) before submitting.' };
+  }
 
   await prisma.tutor.update({
     where: { id: tutor.id },

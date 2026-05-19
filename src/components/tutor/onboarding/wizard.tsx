@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
@@ -69,6 +69,11 @@ const STEP_LABELS = [
   'Review',
 ];
 
+function toDateInputValue(date: Date): string {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
 function inputCls(hasError?: boolean) {
   return cn(
     'border-border bg-background w-full rounded-lg border px-3 py-2 text-sm',
@@ -86,14 +91,17 @@ function Field({
 }: {
   label: string;
   error?: string;
-  children: React.ReactNode;
+  children: ((id: string) => React.ReactNode) | React.ReactNode;
   hint?: string;
 }) {
+  const autoId = useId();
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium">{label}</label>
+      <label htmlFor={autoId} className="text-sm font-medium">
+        {label}
+      </label>
       {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
-      {children}
+      {typeof children === 'function' ? children(autoId) : children}
       {error && <p className="text-destructive text-xs">{error}</p>}
     </div>
   );
@@ -140,7 +148,13 @@ function ProgressBar({ currentStep }: { currentStep: number }) {
 
 // ─── Step 1: Basic info ────────────────────────────────────────────────────
 
-function Step1({ initial, onNext }: { initial: OnboardingData; onNext: () => void }) {
+function Step1({
+  initial,
+  onNext,
+}: {
+  initial: OnboardingData;
+  onNext: (patch: Partial<OnboardingData>) => void;
+}) {
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -162,7 +176,7 @@ function Step1({ initial, onNext }: { initial: OnboardingData; onNext: () => voi
       setServerError(result.error);
       return;
     }
-    onNext();
+    onNext({ headline: data.headline, bio: data.bio });
   }
 
   return (
@@ -185,11 +199,14 @@ function Step1({ initial, onNext }: { initial: OnboardingData; onNext: () => voi
         error={errors.headline?.message}
         hint="A short sentence describing what you teach (10–120 characters)"
       >
-        <input
-          {...register('headline')}
-          className={inputCls(!!errors.headline)}
-          placeholder="Experienced Math & Physics tutor with 8 years of practice"
-        />
+        {(id) => (
+          <input
+            id={id}
+            {...register('headline')}
+            className={inputCls(!!errors.headline)}
+            placeholder="Experienced Math & Physics tutor with 8 years of practice"
+          />
+        )}
       </Field>
 
       <Field
@@ -197,12 +214,15 @@ function Step1({ initial, onNext }: { initial: OnboardingData; onNext: () => voi
         error={errors.bio?.message}
         hint="Tell students about your teaching style, experience and approach (50–2000 characters)"
       >
-        <textarea
-          {...register('bio')}
-          rows={6}
-          className={inputCls(!!errors.bio)}
-          placeholder="I have been teaching mathematics and physics for..."
-        />
+        {(id) => (
+          <textarea
+            id={id}
+            {...register('bio')}
+            rows={6}
+            className={inputCls(!!errors.bio)}
+            placeholder="I have been teaching mathematics and physics for..."
+          />
+        )}
       </Field>
 
       <div className="flex justify-end">
@@ -255,7 +275,7 @@ function Step3({
 }: {
   initial: OnboardingData;
   categories: Category[];
-  onNext: () => void;
+  onNext: (patch: Partial<OnboardingData>) => void;
   onBack: () => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -288,14 +308,21 @@ function Step3({
     }
 
     setSubmitting(true);
-    const result = await saveStep3({ skills, categoryIds: selectedCats });
-    setSubmitting(false);
+    let result: Awaited<ReturnType<typeof saveStep3>>;
+    try {
+      result = await saveStep3({ skills, categoryIds: selectedCats });
+    } finally {
+      setSubmitting(false);
+    }
 
     if (!result.success) {
       setServerError(result.error);
       return;
     }
-    onNext();
+    onNext({
+      skills: skills.map((name) => ({ name })),
+      categories: selectedCats.map((categoryId) => ({ categoryId })),
+    });
   }
 
   function toggleCat(id: string) {
@@ -322,12 +349,15 @@ function Step3({
         error={skillError ?? undefined}
         hint="Separate skills with commas, e.g. Mathematics, Physics, Python"
       >
-        <input
-          value={skillInput}
-          onChange={(e) => setSkillInput(e.target.value)}
-          className={inputCls(!!skillError)}
-          placeholder="Mathematics, Physics, Python"
-        />
+        {(id) => (
+          <input
+            id={id}
+            value={skillInput}
+            onChange={(e) => setSkillInput(e.target.value)}
+            className={inputCls(!!skillError)}
+            placeholder="Mathematics, Physics, Python"
+          />
+        )}
       </Field>
 
       <Field label="Categories" error={catError ?? undefined} hint="Select up to 5 categories">
@@ -373,7 +403,7 @@ function Step4({
   onBack,
 }: {
   initial: OnboardingData;
-  onNext: () => void;
+  onNext: (patch: Partial<OnboardingData>) => void;
   onBack: () => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -433,7 +463,22 @@ function Step4({
       setServerError(result.error);
       return;
     }
-    onNext();
+    onNext({
+      educations: data.educations.map((e) => ({
+        institution: e.institution,
+        degree: e.degree ?? null,
+        fieldOfStudy: e.fieldOfStudy ?? null,
+        startYear: e.startYear ?? null,
+        endYear: e.endYear ?? null,
+      })),
+      experiences: data.experiences.map((e) => ({
+        company: e.company,
+        role: e.role,
+        startYear: e.startYear ?? null,
+        endYear: e.endYear ?? null,
+        description: e.description ?? null,
+      })),
+    });
   }
 
   return (
@@ -636,7 +681,7 @@ function Step5({
   onBack,
 }: {
   initial: OnboardingData;
-  onNext: () => void;
+  onNext: (patch: Partial<OnboardingData>) => void;
   onBack: () => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
@@ -654,7 +699,7 @@ function Step5({
           ? initial.certificates.map((c) => ({
               title: c.title,
               issuer: c.issuer ?? '',
-              issuedAt: c.issuedAt ? new Date(c.issuedAt).toISOString().split('T')[0] : '',
+              issuedAt: c.issuedAt ? toDateInputValue(new Date(c.issuedAt)) : '',
             }))
           : [],
     },
@@ -669,7 +714,13 @@ function Step5({
       setServerError(result.error);
       return;
     }
-    onNext();
+    onNext({
+      certificates: data.certificates.map((c) => ({
+        title: c.title,
+        issuer: c.issuer ?? null,
+        issuedAt: c.issuedAt ? new Date(c.issuedAt) : null,
+      })),
+    });
   }
 
   return (
@@ -953,10 +1004,16 @@ function UnderReviewBanner() {
 // ─── Main wizard ───────────────────────────────────────────────────────────
 
 export function OnboardingWizard({ initialData, categories }: WizardProps) {
+  const [wizardData, setWizardData] = useState<OnboardingData>(initialData);
   const isLocked = initialData.onboardingComplete && initialData.status !== 'REJECTED';
   const startStep = isLocked ? 6 : Math.min(Math.max(initialData.onboardingStep, 1), 6);
   const [step, setStep] = useState(startStep);
   const [submitted, setSubmitted] = useState(false);
+
+  function advanceStep(patch: Partial<OnboardingData>) {
+    setWizardData((prev) => ({ ...prev, ...patch }));
+    setStep((s) => s + 1);
+  }
 
   if (isLocked && !submitted) {
     return (
@@ -979,25 +1036,33 @@ export function OnboardingWizard({ initialData, categories }: WizardProps) {
       <h1 className="mb-6 text-2xl font-bold">Complete your tutor profile</h1>
       <ProgressBar currentStep={step} />
 
-      {step === 1 && <Step1 initial={initialData} onNext={() => setStep(2)} />}
+      {step === 1 && <Step1 initial={wizardData} onNext={(patch) => advanceStep(patch)} />}
       {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} />}
       {step === 3 && (
         <Step3
-          initial={initialData}
+          initial={wizardData}
           categories={categories}
-          onNext={() => setStep(4)}
+          onNext={(patch) => advanceStep(patch)}
           onBack={() => setStep(2)}
         />
       )}
       {step === 4 && (
-        <Step4 initial={initialData} onNext={() => setStep(5)} onBack={() => setStep(3)} />
+        <Step4
+          initial={wizardData}
+          onNext={(patch) => advanceStep(patch)}
+          onBack={() => setStep(3)}
+        />
       )}
       {step === 5 && (
-        <Step5 initial={initialData} onNext={() => setStep(6)} onBack={() => setStep(4)} />
+        <Step5
+          initial={wizardData}
+          onNext={(patch) => advanceStep(patch)}
+          onBack={() => setStep(4)}
+        />
       )}
       {step === 6 && (
         <Step6
-          initial={initialData}
+          initial={wizardData}
           categories={categories}
           onBack={() => setStep(5)}
           onSubmitted={() => setSubmitted(true)}
