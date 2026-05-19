@@ -170,9 +170,10 @@ model Tutor {
 }
 
 model Skill {
-  id      String @id @default(cuid())
-  tutorId String
-  name    String
+  id        String @id @default(cuid())
+  tutorId   String
+  name      String
+  sortOrder Int    @default(0)
 
   tutor Tutor @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 
@@ -180,12 +181,13 @@ model Skill {
 }
 
 model Certificate {
-  id       String    @id @default(cuid())
-  tutorId  String
-  title    String
-  issuer   String?
-  issuedAt DateTime? @db.Date
-  fileUrl  String?
+  id        String    @id @default(cuid())
+  tutorId   String
+  title     String
+  issuer    String?
+  issuedAt  DateTime? @db.Date
+  fileUrl   String?
+  sortOrder Int       @default(0)
 
   tutor Tutor @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 
@@ -193,13 +195,14 @@ model Certificate {
 }
 
 model Education {
-  id           String  @id @default(cuid())
+  id           String @id @default(cuid())
   tutorId      String
   institution  String
   degree       String?
   fieldOfStudy String?
   startYear    Int?
   endYear      Int?
+  sortOrder    Int    @default(0)
 
   tutor Tutor @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 
@@ -214,10 +217,17 @@ model Experience {
   startYear   Int?
   endYear     Int?
   description String? @db.Text
+  sortOrder   Int     @default(0)
 
   tutor Tutor @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 
   @@index([tutorId])
+}
+
+model CommonSkill {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String @default("General")
 }
 
 // ─── Catalog: Categories ↔ Tutors ↔ Consultations ──────────────────────

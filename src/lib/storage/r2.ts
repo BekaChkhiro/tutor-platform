@@ -81,6 +81,11 @@ export function introPosterPublicUrl(userId: string): string {
   return `${base}/intro_videos/${userId}/poster.jpg`;
 }
 
+export function certificateFilePublicUrl(key: string): string {
+  const base = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '');
+  return `${base}/${key}`;
+}
+
 export async function objectExists(key: string): Promise<boolean> {
   try {
     await client().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));

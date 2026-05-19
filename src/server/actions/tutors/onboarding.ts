@@ -24,8 +24,11 @@ export async function loadOnboardingData(userId: string) {
   return prisma.tutor.findUnique({
     where: { userId },
     include: {
-      skills: { select: { name: true } },
-      certificates: { select: { title: true, issuer: true, issuedAt: true } },
+      skills: { select: { name: true, sortOrder: true }, orderBy: { sortOrder: 'asc' } },
+      certificates: {
+        select: { title: true, issuer: true, issuedAt: true, fileUrl: true, sortOrder: true },
+        orderBy: { sortOrder: 'asc' },
+      },
       educations: {
         select: {
           institution: true,
@@ -33,14 +36,32 @@ export async function loadOnboardingData(userId: string) {
           fieldOfStudy: true,
           startYear: true,
           endYear: true,
+          sortOrder: true,
         },
+        orderBy: { sortOrder: 'asc' },
       },
       experiences: {
-        select: { company: true, role: true, startYear: true, endYear: true, description: true },
+        select: {
+          company: true,
+          role: true,
+          startYear: true,
+          endYear: true,
+          description: true,
+          sortOrder: true,
+        },
+        orderBy: { sortOrder: 'asc' },
       },
       categories: { select: { categoryId: true } },
     },
   });
+}
+
+export async function loadCommonSkills(): Promise<string[]> {
+  const skills = await prisma.commonSkill.findMany({
+    select: { name: true },
+    orderBy: { name: 'asc' },
+  });
+  return skills.map((s) => s.name);
 }
 
 export async function saveStep1(raw: unknown): Promise<ActionResult> {
@@ -82,7 +103,11 @@ export async function saveStep3(raw: unknown): Promise<ActionResult> {
   await prisma.$transaction([
     prisma.skill.deleteMany({ where: { tutorId: tutor.id } }),
     prisma.skill.createMany({
-      data: parsed.data.skills.map((name) => ({ tutorId: tutor.id, name })),
+      data: parsed.data.skills.map((name, i) => ({
+        tutorId: tutor.id,
+        name,
+        sortOrder: i,
+      })),
     }),
     prisma.tutorCategory.deleteMany({ where: { tutorId: tutor.id } }),
     prisma.tutorCategory.createMany({
@@ -117,13 +142,14 @@ export async function saveStep4(raw: unknown): Promise<ActionResult> {
     ...(parsed.data.educations.length > 0
       ? [
           prisma.education.createMany({
-            data: parsed.data.educations.map((e) => ({
+            data: parsed.data.educations.map((e, i) => ({
               tutorId: tutor.id,
               institution: e.institution,
               degree: e.degree ?? null,
               fieldOfStudy: e.fieldOfStudy ?? null,
               startYear: e.startYear ?? null,
               endYear: e.endYear ?? null,
+              sortOrder: i,
             })),
           }),
         ]
@@ -132,13 +158,14 @@ export async function saveStep4(raw: unknown): Promise<ActionResult> {
     ...(parsed.data.experiences.length > 0
       ? [
           prisma.experience.createMany({
-            data: parsed.data.experiences.map((e) => ({
+            data: parsed.data.experiences.map((e, i) => ({
               tutorId: tutor.id,
               company: e.company,
               role: e.role,
               startYear: e.startYear ?? null,
-              endYear: e.endYear ?? null,
+              endYear: e.isPresent ? null : (e.endYear ?? null),
               description: e.description ?? null,
+              sortOrder: i,
             })),
           }),
         ]
@@ -169,11 +196,13 @@ export async function saveStep5(raw: unknown): Promise<ActionResult> {
     ...(parsed.data.certificates.length > 0
       ? [
           prisma.certificate.createMany({
-            data: parsed.data.certificates.map((c) => ({
+            data: parsed.data.certificates.map((c, i) => ({
               tutorId: tutor.id,
               title: c.title,
               issuer: c.issuer ?? null,
               issuedAt: c.issuedAt ? new Date(c.issuedAt) : null,
+              fileUrl: c.fileUrl ?? null,
+              sortOrder: i,
             })),
           }),
         ]

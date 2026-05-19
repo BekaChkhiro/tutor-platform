@@ -17,10 +17,16 @@ export default async function TutorOnboardingPage() {
 
   if (data.status === 'APPROVED') redirect('/tutor/dashboard');
 
-  const categories = await prisma.category.findMany({
-    select: { id: true, name: true },
-    orderBy: { sortOrder: 'asc' },
-  });
+  const [categories, commonSkills] = await Promise.all([
+    prisma.category.findMany({
+      select: { id: true, name: true },
+      orderBy: { sortOrder: 'asc' },
+    }),
+    prisma.commonSkill.findMany({
+      select: { name: true },
+      orderBy: { name: 'asc' },
+    }),
+  ]);
 
   const initialData = {
     onboardingStep: data.onboardingStep,
@@ -38,8 +44,15 @@ export default async function TutorOnboardingPage() {
       title: c.title,
       issuer: c.issuer,
       issuedAt: c.issuedAt,
+      fileUrl: c.fileUrl,
     })),
   };
 
-  return <OnboardingWizard initialData={initialData} categories={categories} />;
+  return (
+    <OnboardingWizard
+      initialData={initialData}
+      categories={categories}
+      commonSkills={commonSkills.map((s) => s.name)}
+    />
+  );
 }
