@@ -5,6 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { PhotoUpload } from '@/components/auth/photo-upload';
 import {
   step1Schema,
   step4Schema,
@@ -32,6 +33,7 @@ export interface OnboardingData {
   status: string;
   headline: string | null;
   bio: string | null;
+  photoUrl: string | null;
   skills: { name: string }[];
   categories: { categoryId: string }[];
   educations: {
@@ -234,31 +236,36 @@ function Step1({
   );
 }
 
-// ─── Step 2: Photo & video (placeholder) ──────────────────────────────────
+// ─── Step 2: Photo upload ──────────────────────────────────────────────────
 
-function Step2({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+function Step2({
+  initial,
+  onNext,
+  onBack,
+}: {
+  initial: OnboardingData;
+  onNext: (patch: Partial<OnboardingData>) => void;
+  onBack: () => void;
+}) {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(initial.photoUrl);
+
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold">Profile photo & intro video</h2>
+        <h2 className="text-xl font-semibold">Profile photo</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Upload a professional photo and an optional intro video.
+          Upload a professional photo. Students are more likely to book tutors with a clear photo.
         </p>
       </div>
 
-      <div className="border-border rounded-xl border-2 border-dashed p-8 text-center">
-        <p className="text-muted-foreground text-sm">
-          Photo and video uploads are coming soon. You can continue completing your profile and add
-          media later.
-        </p>
-      </div>
+      <PhotoUpload currentPhotoUrl={photoUrl} onUploaded={(url) => setPhotoUrl(url)} />
 
       <div className="flex justify-between">
         <Button type="button" variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button type="button" onClick={onNext}>
-          Continue
+        <Button type="button" onClick={() => onNext({ photoUrl })}>
+          {photoUrl ? 'Save & continue' : 'Skip for now'}
         </Button>
       </div>
     </div>
@@ -1037,7 +1044,13 @@ export function OnboardingWizard({ initialData, categories }: WizardProps) {
       <ProgressBar currentStep={step} />
 
       {step === 1 && <Step1 initial={wizardData} onNext={(patch) => advanceStep(patch)} />}
-      {step === 2 && <Step2 onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+      {step === 2 && (
+        <Step2
+          initial={wizardData}
+          onNext={(patch) => advanceStep(patch)}
+          onBack={() => setStep(1)}
+        />
+      )}
       {step === 3 && (
         <Step3
           initial={wizardData}
