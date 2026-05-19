@@ -271,6 +271,13 @@ describe('tutor onboarding server actions', () => {
   describe('submitForReview', () => {
     it('sets onboardingComplete=true and sends admin email', async () => {
       const user = await seedTutor(_db);
+      await _db.tutor.update({
+        where: { userId: user.id },
+        data: {
+          headline: 'Experienced Math tutor with 8 years of practice',
+          bio: 'I have been teaching mathematics and physics for over 8 years. My approach is student-centred and results-driven.',
+        },
+      });
       mockSession(user.id);
 
       const result = await submitForReview();
