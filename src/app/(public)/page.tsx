@@ -8,22 +8,29 @@ import { TestimonialsSection } from '@/components/marketing/testimonials-section
 import { FaqTeaser } from '@/components/marketing/faq-teaser';
 import { CtaBand } from '@/components/marketing/cta-band';
 
+const TITLE = 'Tutor — გიპოვე ექსპერტი, მოიწვიე კონსულტაცია';
+const DESCRIPTION =
+  '100+ დადასტურებული სპეციალისტი სხვადასხვა სფეროში. დაჯავშნე ვიდეო კონსულტაცია ონლაინ — TBC ან BOG გადახდით.';
+
 export const metadata: Metadata = {
-  title: 'Tutor — გიპოვე ექსპერტი, მოიწვიე კონსულტაცია',
-  description:
-    '100+ დადასტურებული სპეციალისტი სხვადასხვა სფეროში. დაჯავშნე ვიდეო კონსულტაცია ონლაინ — TBC ან BOG გადახდით.',
-  openGraph: {
-    title: 'Tutor — გიპოვე ექსპერტი, მოიწვიე კონსულტაცია',
-    description:
-      '100+ დადასტურებული სპეციალისტი სხვადასხვა სფეროში. დაჯავშნე ვიდეო კონსულტაცია ონლაინ.',
-    type: 'website',
-    locale: 'ka_GE',
-  },
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: {
     canonical: '/',
-    languages: {
-      'ka-GE': '/',
-    },
+    languages: { 'ka-GE': '/' },
+  },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    type: 'website',
+    locale: 'ka_GE',
+    images: [{ url: '/api/og', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ['/api/og'],
   },
 };
 

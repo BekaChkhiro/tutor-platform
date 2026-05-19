@@ -82,25 +82,25 @@ jobs:
         with:
           ref: ${{ github.event.deployment.sha }}
 
-      - name: Build target URL with Vercel bypass
-        id: target
+      - name: Build Lighthouse config (inject bypass header when set)
+        id: lhci-cfg
         env:
-          BASE_URL: ${{ github.event.deployment_status.target_url }}
           BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          BASE_URL: ${{ github.event.deployment_status.target_url }}
         run: |
           if [ -n "$BYPASS" ]; then
-            URL="${BASE_URL}?x-vercel-protection-bypass=${BYPASS}&x-vercel-set-bypass-cookie=samesitenone"
+            jq --arg bypass "$BYPASS" --arg url "$BASE_URL" \
+              '.ci.collect.settings.extraHeaders = {"x-vercel-protection-bypass": $bypass} | .ci.collect.url = [$url]' \
+              .lighthouserc.json > .lighthouserc.lhci.json
+            echo "config=.lighthouserc.lhci.json" >> "$GITHUB_OUTPUT"
           else
-            URL="$BASE_URL"
+            echo "config=.lighthouserc.json" >> "$GITHUB_OUTPUT"
           fi
-          # Mask the URL so the bypass token doesn't leak into logs.
-          echo "::add-mask::$URL"
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
-          urls: ${{ steps.target.outputs.url }}
-          configPath: ./.lighthouserc.json
+          urls: ${{ github.event.deployment_status.target_url }}
+          configPath: ${{ steps.lhci-cfg.outputs.config }}
           uploadArtifacts: true
           temporaryPublicStorage: true
