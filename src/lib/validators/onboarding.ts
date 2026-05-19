@@ -13,6 +13,7 @@ export const step1Schema = z.object({
     .max(2000, 'Bio must be at most 2000 characters'),
 });
 
+// categoryIds is ordered: index 0 is the primary category.
 export const step3Schema = z.object({
   skills: z
     .array(z.string().trim().min(1).max(50))
@@ -21,7 +22,7 @@ export const step3Schema = z.object({
   categoryIds: z
     .array(z.string())
     .min(1, 'Select at least one category')
-    .max(5, 'Select at most 5 categories'),
+    .max(3, 'Select at most 3 categories'),
 });
 
 const educationSchema = z.object({

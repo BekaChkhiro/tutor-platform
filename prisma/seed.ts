@@ -244,7 +244,34 @@ const COMMON_SKILLS: { name: string; category: string }[] = [
   { name: 'Fitness', category: 'Sports & Physical Education' },
 ];
 
+const CATEGORIES: { slug: string; name: string; sortOrder: number }[] = [
+  { slug: 'it', name: 'IT', sortOrder: 0 },
+  { slug: 'mathematics', name: 'მათემატიკა', sortOrder: 1 },
+  { slug: 'languages', name: 'ენები', sortOrder: 2 },
+  { slug: 'education', name: 'განათლება', sortOrder: 3 },
+  { slug: 'business', name: 'ბიზნეს კონსულტაცია', sortOrder: 4 },
+  { slug: 'finance', name: 'ფინანსები', sortOrder: 5 },
+  { slug: 'psychology', name: 'ფსიქოლოგია', sortOrder: 6 },
+  { slug: 'career', name: 'კარიერა', sortOrder: 7 },
+  { slug: 'law', name: 'იურიდიული', sortOrder: 8 },
+  { slug: 'music', name: 'მუსიკა', sortOrder: 9 },
+  { slug: 'art', name: 'ხელოვნება', sortOrder: 10 },
+  { slug: 'science', name: 'საბუნებისმეტყველო მეცნიერებები', sortOrder: 11 },
+  { slug: 'sport', name: 'სპორტი', sortOrder: 12 },
+  { slug: 'test-prep', name: 'გამოცდებისთვის მომზადება', sortOrder: 13 },
+];
+
 async function main(): Promise<void> {
+  console.log(`Seeding ${CATEGORIES.length} categories...`);
+  for (const cat of CATEGORIES) {
+    await prisma.category.upsert({
+      where: { slug: cat.slug },
+      update: { name: cat.name, sortOrder: cat.sortOrder },
+      create: cat,
+    });
+  }
+  console.log('Categories seeded.');
+
   console.log(`Seeding ${COMMON_SKILLS.length} common skills...`);
   for (const skill of COMMON_SKILLS) {
     await prisma.commonSkill.upsert({

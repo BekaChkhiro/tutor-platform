@@ -55,7 +55,7 @@ export interface OnboardingData {
   photoUrl: string | null;
   introVideoUrl: string | null;
   skills: { name: string }[];
-  categories: { categoryId: string }[];
+  categories: { categoryId: string; isPrimary: boolean }[];
   educations: {
     institution: string;
     degree: string | null;
@@ -504,6 +504,166 @@ function SortableSkillChip({
   );
 }
 
+const MAX_CATEGORIES = 3;
+
+function CategoryPicker({
+  allCategories,
+  selected,
+  onChange,
+  error,
+}: {
+  allCategories: Category[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  error?: string;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function toggleCat(id: string) {
+    if (selected.includes(id)) {
+      onChange(selected.filter((c) => c !== id));
+    } else if (selected.length < MAX_CATEGORIES) {
+      onChange([...selected, id]);
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = selected.indexOf(active.id as string);
+      const newIndex = selected.indexOf(over.id as string);
+      onChange(arrayMove(selected, oldIndex, newIndex));
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium">Categories</label>
+        <span className="text-muted-foreground text-xs">
+          {selected.length} / {MAX_CATEGORIES}
+        </span>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Select up to 3 categories. The first is your primary category shown in listings.
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {allCategories.map((cat) => {
+          const isSelected = selected.includes(cat.id);
+          const isDisabled = !isSelected && selected.length >= MAX_CATEGORIES;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              disabled={isDisabled}
+              onClick={() => toggleCat(cat.id)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-sm transition-colors',
+                isSelected
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : isDisabled
+                    ? 'border-border text-muted-foreground cursor-not-allowed opacity-40'
+                    : 'border-border hover:bg-muted cursor-pointer',
+              )}
+            >
+              {cat.name}
+            </button>
+          );
+        })}
+        {allCategories.length === 0 && (
+          <p className="text-muted-foreground text-sm">No categories available yet.</p>
+        )}
+      </div>
+
+      {selected.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-muted-foreground text-xs">Drag to change order — first is primary:</p>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={selected} strategy={verticalListSortingStrategy}>
+              <div className="flex flex-col gap-1.5">
+                {selected.map((id, index) => {
+                  const cat = allCategories.find((c) => c.id === id);
+                  return (
+                    <SortableCategoryRow
+                      key={id}
+                      id={id}
+                      name={cat?.name ?? id}
+                      isPrimary={index === 0}
+                      onRemove={() => onChange(selected.filter((c) => c !== id))}
+                    />
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+      )}
+
+      {error && <p className="text-destructive text-xs">{error}</p>}
+    </div>
+  );
+}
+
+function SortableCategoryRow({
+  id,
+  name,
+  isPrimary,
+  onRemove,
+}: {
+  id: string;
+  name: string;
+  isPrimary: boolean;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="border-border bg-background flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+    >
+      <span
+        {...attributes}
+        {...listeners}
+        className="text-muted-foreground cursor-grab touch-none select-none"
+        aria-label="Drag to reorder"
+      >
+        ⠿
+      </span>
+      <span className="flex-1">{name}</span>
+      {isPrimary && (
+        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
+          Primary
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-muted-foreground hover:text-destructive leading-none"
+        aria-label={`Remove ${name}`}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 function Step3({
   initial,
   categories,
@@ -555,12 +715,8 @@ function Step3({
     }
     onNext({
       skills: skills.map((name) => ({ name })),
-      categories: selectedCats.map((categoryId) => ({ categoryId })),
+      categories: selectedCats.map((categoryId, i) => ({ categoryId, isPrimary: i === 0 })),
     });
-  }
-
-  function toggleCat(id: string) {
-    setSelectedCats((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   }
 
   return (
@@ -585,28 +741,12 @@ function Step3({
         error={skillError ?? undefined}
       />
 
-      <Field label="Categories" error={catError ?? undefined} hint="Select up to 5 categories">
-        <div className="flex flex-wrap gap-2 pt-1">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => toggleCat(cat.id)}
-              className={cn(
-                'rounded-full border px-3 py-1 text-sm transition-colors',
-                selectedCats.includes(cat.id)
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border hover:bg-muted',
-              )}
-            >
-              {cat.name}
-            </button>
-          ))}
-          {categories.length === 0 && (
-            <p className="text-muted-foreground text-sm">No categories available yet.</p>
-          )}
-        </div>
-      </Field>
+      <CategoryPicker
+        allCategories={categories}
+        selected={selectedCats}
+        onChange={setSelectedCats}
+        error={catError ?? undefined}
+      />
 
       <div className="flex justify-between">
         <Button type="button" variant="outline" onClick={onBack}>
@@ -1437,9 +1577,12 @@ function Step6({
     onSubmitted();
   }
 
-  const catNames = initial.categories
-    .map((c) => categories.find((cat) => cat.id === c.categoryId)?.name)
-    .filter(Boolean);
+  const catEntries = initial.categories
+    .map((c) => ({
+      name: categories.find((cat) => cat.id === c.categoryId)?.name,
+      isPrimary: c.isPrimary,
+    }))
+    .filter((c): c is { name: string; isPrimary: boolean } => Boolean(c.name));
 
   return (
     <div className="space-y-6">
@@ -1485,11 +1628,15 @@ function Step6({
         </ReviewSection>
 
         <ReviewSection title="Categories">
-          {catNames.length > 0 ? (
+          {catEntries.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
-              {catNames.map((name, i) => (
-                <span key={i} className="bg-muted rounded-full px-2.5 py-0.5 text-xs">
+              {catEntries.map(({ name, isPrimary }, i) => (
+                <span
+                  key={i}
+                  className="bg-muted flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs"
+                >
                   {name}
+                  {isPrimary && <span className="text-primary font-medium">(Primary)</span>}
                 </span>
               ))}
             </div>

@@ -25,7 +25,12 @@ const mockTutor: TutorListItem = {
   updatedAt: new Date('2024-01-01'),
   user: { firstName: 'ნინო', lastName: 'ბერიძე' },
   categories: [
-    { tutorId: 'tutor-1', categoryId: 'cat-1', category: { name: 'მათემატიკა', slug: 'math' } },
+    {
+      tutorId: 'tutor-1',
+      categoryId: 'cat-1',
+      isPrimary: true,
+      category: { name: 'მათემატიკა', slug: 'math' },
+    },
   ],
   reviews: [{ rating: 5 }, { rating: 4 }],
   consultations: [{ priceGel: 30 as unknown as import('@prisma/client').Prisma.Decimal }],
