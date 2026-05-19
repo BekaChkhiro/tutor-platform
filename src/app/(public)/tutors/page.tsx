@@ -24,10 +24,21 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 export default async function TutorsPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  const category = params.category ?? '';
-  const sort = (params.sort as SortOption | undefined) ?? 'newest';
-  const q = params.q ?? '';
-  const page = Math.max(1, Number(params.page ?? '1') || 1);
+  const category = (params.category ?? '').trim();
+  const q = (params.q ?? '').trim();
+
+  const sortParam = params.sort;
+  const sort: SortOption =
+    sortParam === 'newest' ||
+    sortParam === 'rating' ||
+    sortParam === 'price_asc' ||
+    sortParam === 'price_desc'
+      ? sortParam
+      : 'newest';
+
+  const parsedPage = Number(params.page);
+  const page =
+    Number.isFinite(parsedPage) && Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const [{ tutors, total, totalPages }, categories] = await Promise.all([
     fetchTutors({ category, sort, q, page }),

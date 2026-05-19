@@ -13,7 +13,10 @@ export function TutorCard({ tutor }: { tutor: TutorListItem }) {
   const category = tutor.categories[0]?.category.name;
   const rating = avgRating(tutor.reviews);
   const reviewCount = tutor.reviews.length;
-  const minPrice = tutor.consultations[0]?.priceGel;
+  const minPrice =
+    tutor.consultations.length > 0
+      ? Math.min(...tutor.consultations.map((c) => Number(c.priceGel)))
+      : null;
 
   return (
     <Link
