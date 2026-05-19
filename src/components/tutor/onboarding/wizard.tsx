@@ -1,8 +1,25 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PhotoUpload } from '@/components/auth/photo-upload';
@@ -22,6 +39,7 @@ import {
   saveStep5,
   submitForReview,
 } from '@/server/actions/tutors/onboarding';
+import { requestCertificateUploadUrl } from '@/server/actions/storage/certificate';
 
 export interface Category {
   id: string;
@@ -56,12 +74,14 @@ export interface OnboardingData {
     title: string;
     issuer: string | null;
     issuedAt: Date | null;
+    fileUrl: string | null;
   }[];
 }
 
 interface WizardProps {
   initialData: OnboardingData;
   categories: Category[];
+  commonSkills: string[];
 }
 
 const STEP_LABELS = [
@@ -294,19 +314,211 @@ function Step2({
 
 // ─── Step 3: Skills & categories ──────────────────────────────────────────
 
+const MAX_SKILLS = 30;
+const AUTOCOMPLETE_LIMIT = 8;
+
+function SkillsEditor({
+  skills,
+  onChange,
+  commonSkills,
+  error,
+}: {
+  skills: string[];
+  onChange: (skills: string[]) => void;
+  commonSkills: string[];
+  error?: string;
+}) {
+  const inputId = useId();
+  const [inputValue, setInputValue] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const suggestions = inputValue.trim()
+    ? commonSkills
+        .filter((s) => {
+          const lower = s.toLowerCase();
+          const query = inputValue.trim().toLowerCase();
+          return !skills.includes(s) && (lower.startsWith(query) || lower.includes(query));
+        })
+        .slice(0, AUTOCOMPLETE_LIMIT)
+    : [];
+
+  function addSkill(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed || skills.includes(trimmed) || skills.length >= MAX_SKILLS) return;
+    onChange([...skills, trimmed]);
+    setInputValue('');
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  }
+
+  function removeSkill(skill: string) {
+    onChange(skills.filter((s) => s !== skill));
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+      e.preventDefault();
+      addSkill(inputValue);
+    } else if (e.key === 'Backspace' && !inputValue && skills.length > 0) {
+      onChange(skills.slice(0, -1));
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = skills.findIndex((s) => s === active.id);
+      const newIndex = skills.findIndex((s) => s === over.id);
+      onChange(arrayMove(skills, oldIndex, newIndex));
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label htmlFor={inputId} className="text-sm font-medium">
+          Skills
+        </label>
+        <span className="text-muted-foreground text-xs">
+          {skills.length} / {MAX_SKILLS}
+        </span>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Press Enter, comma, or Tab to add. Drag chips to reorder.
+      </p>
+
+      <div
+        ref={containerRef}
+        className={cn(
+          'border-border bg-background min-h-[2.75rem] rounded-lg border p-2',
+          'focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-3',
+          error &&
+            'border-destructive focus-within:border-destructive focus-within:ring-destructive/20',
+        )}
+      >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={skills} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-wrap gap-1.5">
+              {skills.map((skill) => (
+                <SortableSkillChip key={skill} skill={skill} onRemove={removeSkill} />
+              ))}
+              {skills.length < MAX_SKILLS && (
+                <div className="relative">
+                  <input
+                    ref={inputRef}
+                    id={inputId}
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => {
+                      setInputValue(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                    className="min-w-[120px] bg-transparent text-sm outline-none placeholder:text-zinc-400"
+                    placeholder={skills.length === 0 ? 'Type a skill…' : ''}
+                    aria-label="Add a skill"
+                    aria-autocomplete="list"
+                  />
+                  {showSuggestions && suggestions.length > 0 && (
+                    <ul
+                      role="listbox"
+                      className="border-border bg-background absolute top-full left-0 z-10 mt-1 w-48 rounded-lg border py-1 shadow-md"
+                    >
+                      {suggestions.map((s) => (
+                        <li
+                          key={s}
+                          role="option"
+                          aria-selected={false}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            addSkill(s);
+                          }}
+                          className="hover:bg-muted cursor-pointer px-3 py-1.5 text-sm"
+                        >
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
+
+      {error && <p className="text-destructive text-xs">{error}</p>}
+    </div>
+  );
+}
+
+function SortableSkillChip({
+  skill,
+  onRemove,
+}: {
+  skill: string;
+  onRemove: (skill: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: skill,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-primary/10 text-primary flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+    >
+      <span
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none select-none"
+        aria-label={`Drag to reorder ${skill}`}
+      >
+        ⠿
+      </span>
+      <span>{skill}</span>
+      <button
+        type="button"
+        onClick={() => onRemove(skill)}
+        className="hover:text-destructive ml-0.5 leading-none"
+        aria-label={`Remove ${skill}`}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 function Step3({
   initial,
   categories,
+  commonSkills,
   onNext,
   onBack,
 }: {
   initial: OnboardingData;
   categories: Category[];
+  commonSkills: string[];
   onNext: (patch: Partial<OnboardingData>) => void;
   onBack: () => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
-  const [skillInput, setSkillInput] = useState(initial.skills.map((s) => s.name).join(', '));
+  const [skills, setSkills] = useState<string[]>(initial.skills.map((s) => s.name));
   const [selectedCats, setSelectedCats] = useState<string[]>(
     initial.categories.map((c) => c.categoryId),
   );
@@ -319,11 +531,6 @@ function Step3({
     setCatError(null);
     setSkillError(null);
     setServerError(null);
-
-    const skills = skillInput
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
 
     if (skills.length === 0) {
       setSkillError('Add at least one skill');
@@ -371,21 +578,12 @@ function Step3({
         </p>
       )}
 
-      <Field
-        label="Skills"
+      <SkillsEditor
+        skills={skills}
+        onChange={setSkills}
+        commonSkills={commonSkills}
         error={skillError ?? undefined}
-        hint="Separate skills with commas, e.g. Mathematics, Physics, Python"
-      >
-        {(id) => (
-          <input
-            id={id}
-            value={skillInput}
-            onChange={(e) => setSkillInput(e.target.value)}
-            className={inputCls(!!skillError)}
-            placeholder="Mathematics, Physics, Python"
-          />
-        )}
-      </Field>
+      />
 
       <Field label="Categories" error={catError ?? undefined} hint="Select up to 5 categories">
         <div className="flex flex-wrap gap-2 pt-1">
@@ -422,6 +620,30 @@ function Step3({
   );
 }
 
+// ─── Shared: SortableItem wrapper ─────────────────────────────────────────
+
+function SortableItem({
+  id,
+  children,
+}: {
+  id: string;
+  children: (handleProps: Record<string, unknown>) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ ...attributes, ...listeners })}
+    </div>
+  );
+}
+
 // ─── Step 4: Education & experience ───────────────────────────────────────
 
 function Step4({
@@ -434,10 +656,14 @@ function Step4({
   onBack: () => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [eduDeleteConfirm, setEduDeleteConfirm] = useState<number | null>(null);
+  const [expDeleteConfirm, setExpDeleteConfirm] = useState<number | null>(null);
+
   const {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<Step4Input>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -460,6 +686,7 @@ function Step4({
               role: e.role,
               startYear: e.startYear ?? undefined,
               endYear: e.endYear ?? undefined,
+              isPresent: e.endYear === null && e.startYear !== null ? true : false,
               description: e.description ?? undefined,
             }))
           : [],
@@ -470,18 +697,44 @@ function Step4({
     fields: eduFields,
     append: addEdu,
     remove: removeEdu,
-  } = useFieldArray({
-    control,
-    name: 'educations',
-  });
+    move: moveEdu,
+  } = useFieldArray({ control, name: 'educations' });
+
   const {
     fields: expFields,
     append: addExp,
     remove: removeExp,
-  } = useFieldArray({
-    control,
-    name: 'experiences',
-  });
+    move: moveExp,
+  } = useFieldArray({ control, name: 'experiences' });
+
+  const expValues = watch('experiences');
+
+  const eduSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const expSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleEduDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = eduFields.findIndex((f) => f.id === active.id);
+      const newIndex = eduFields.findIndex((f) => f.id === over.id);
+      moveEdu(oldIndex, newIndex);
+    }
+  }
+
+  function handleExpDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = expFields.findIndex((f) => f.id === active.id);
+      const newIndex = expFields.findIndex((f) => f.id === over.id);
+      moveExp(oldIndex, newIndex);
+    }
+  }
 
   async function onSubmit(data: Step4Input) {
     setServerError(null);
@@ -502,7 +755,7 @@ function Step4({
         company: e.company,
         role: e.role,
         startYear: e.startYear ?? null,
-        endYear: e.endYear ?? null,
+        endYear: e.isPresent ? null : (e.endYear ?? null),
         description: e.description ?? null,
       })),
     });
@@ -523,169 +776,314 @@ function Step4({
         </p>
       )}
 
+      {/* Education */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">Education</h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              addEdu({
-                institution: '',
-                degree: '',
-                fieldOfStudy: '',
-                startYear: null,
-                endYear: null,
-              })
-            }
-          >
-            + Add
-          </Button>
+          {eduFields.length < 10 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                addEdu({
+                  institution: '',
+                  degree: '',
+                  fieldOfStudy: '',
+                  startYear: null,
+                  endYear: null,
+                })
+              }
+            >
+              + Add
+            </Button>
+          )}
         </div>
-        {eduFields.map((field, i) => (
-          <div key={field.id} className="border-border space-y-3 rounded-lg border p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="grid flex-1 gap-3 sm:grid-cols-2">
-                <Field
-                  label="Institution"
-                  error={
-                    (errors.educations?.[i]?.institution as { message?: string } | undefined)
-                      ?.message
-                  }
-                >
-                  <input
-                    {...register(`educations.${i}.institution`)}
-                    className={inputCls(!!errors.educations?.[i]?.institution)}
-                    placeholder="University of Georgia"
-                  />
-                </Field>
-                <Field label="Degree">
-                  <input
-                    {...register(`educations.${i}.degree`)}
-                    className={inputCls()}
-                    placeholder="Bachelor's"
-                  />
-                </Field>
-                <Field label="Field of study">
-                  <input
-                    {...register(`educations.${i}.fieldOfStudy`)}
-                    className={inputCls()}
-                    placeholder="Computer Science"
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Start year">
-                    <input
-                      {...register(`educations.${i}.startYear`, { valueAsNumber: true })}
-                      type="number"
-                      className={inputCls()}
-                      placeholder="2016"
-                    />
-                  </Field>
-                  <Field label="End year">
-                    <input
-                      {...register(`educations.${i}.endYear`, { valueAsNumber: true })}
-                      type="number"
-                      className={inputCls()}
-                      placeholder="2020"
-                    />
-                  </Field>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => removeEdu(i)}
-                className="text-muted-foreground hover:text-destructive mt-1 text-lg leading-none"
-              >
-                ×
-              </button>
+
+        <DndContext
+          sensors={eduSensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleEduDragEnd}
+        >
+          <SortableContext
+            items={eduFields.map((f) => f.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {eduFields.map((field, i) => (
+                <SortableItem key={field.id} id={field.id}>
+                  {(handleProps) => (
+                    <div className="border-border space-y-3 rounded-lg border p-4">
+                      <div className="flex items-start gap-2">
+                        <button
+                          type="button"
+                          {...handleProps}
+                          className="text-muted-foreground mt-1 cursor-grab touch-none text-lg leading-none select-none"
+                          aria-label="Drag to reorder"
+                        >
+                          ⠿
+                        </button>
+                        <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                          <Field
+                            label="Institution"
+                            error={
+                              (
+                                errors.educations?.[i]?.institution as
+                                  | { message?: string }
+                                  | undefined
+                              )?.message
+                            }
+                          >
+                            <input
+                              {...register(`educations.${i}.institution`)}
+                              className={inputCls(!!errors.educations?.[i]?.institution)}
+                              placeholder="University of Georgia"
+                            />
+                          </Field>
+                          <Field label="Degree">
+                            <input
+                              {...register(`educations.${i}.degree`)}
+                              className={inputCls()}
+                              placeholder="Bachelor's"
+                            />
+                          </Field>
+                          <Field label="Field of study">
+                            <input
+                              {...register(`educations.${i}.fieldOfStudy`)}
+                              className={inputCls()}
+                              placeholder="Computer Science"
+                            />
+                          </Field>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Field label="Start year">
+                              <input
+                                {...register(`educations.${i}.startYear`, { valueAsNumber: true })}
+                                type="number"
+                                className={inputCls()}
+                                placeholder="2016"
+                              />
+                            </Field>
+                            <Field label="End year">
+                              <input
+                                {...register(`educations.${i}.endYear`, { valueAsNumber: true })}
+                                type="number"
+                                className={inputCls()}
+                                placeholder="2020"
+                              />
+                            </Field>
+                          </div>
+                        </div>
+                        <div className="mt-1 flex flex-col items-center">
+                          {eduDeleteConfirm === i ? (
+                            <div className="border-border flex items-center gap-1 rounded-lg border px-2 py-1 text-xs">
+                              <span className="text-muted-foreground">Sure?</span>
+                              <button
+                                type="button"
+                                onClick={() => setEduDeleteConfirm(null)}
+                                className="hover:text-foreground text-muted-foreground"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  removeEdu(i);
+                                  setEduDeleteConfirm(null);
+                                }}
+                                className="text-destructive font-medium"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setEduDeleteConfirm(i)}
+                              className="text-muted-foreground hover:text-destructive text-lg leading-none"
+                              aria-label="Remove education entry"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </SortableItem>
+              ))}
             </div>
-          </div>
-        ))}
+          </SortableContext>
+        </DndContext>
       </div>
 
+      {/* Experience */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">
             Experience
           </h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              addExp({ company: '', role: '', startYear: null, endYear: null, description: '' })
-            }
-          >
-            + Add
-          </Button>
+          {expFields.length < 15 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                addExp({
+                  company: '',
+                  role: '',
+                  startYear: null,
+                  endYear: null,
+                  isPresent: false,
+                  description: '',
+                })
+              }
+            >
+              + Add
+            </Button>
+          )}
         </div>
-        {expFields.map((field, i) => (
-          <div key={field.id} className="border-border space-y-3 rounded-lg border p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="grid flex-1 gap-3 sm:grid-cols-2">
-                <Field
-                  label="Company"
-                  error={
-                    (errors.experiences?.[i]?.company as { message?: string } | undefined)?.message
-                  }
-                >
-                  <input
-                    {...register(`experiences.${i}.company`)}
-                    className={inputCls(!!errors.experiences?.[i]?.company)}
-                    placeholder="Acme Corp"
-                  />
-                </Field>
-                <Field
-                  label="Role"
-                  error={
-                    (errors.experiences?.[i]?.role as { message?: string } | undefined)?.message
-                  }
-                >
-                  <input
-                    {...register(`experiences.${i}.role`)}
-                    className={inputCls(!!errors.experiences?.[i]?.role)}
-                    placeholder="Senior Tutor"
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Start year">
-                    <input
-                      {...register(`experiences.${i}.startYear`, { valueAsNumber: true })}
-                      type="number"
-                      className={inputCls()}
-                      placeholder="2018"
-                    />
-                  </Field>
-                  <Field label="End year">
-                    <input
-                      {...register(`experiences.${i}.endYear`, { valueAsNumber: true })}
-                      type="number"
-                      className={inputCls()}
-                      placeholder="2022"
-                    />
-                  </Field>
-                </div>
-                <Field label="Description" hint="Optional">
-                  <textarea
-                    {...register(`experiences.${i}.description`)}
-                    rows={2}
-                    className={inputCls()}
-                    placeholder="Brief description of your role"
-                  />
-                </Field>
-              </div>
-              <button
-                type="button"
-                onClick={() => removeExp(i)}
-                className="text-muted-foreground hover:text-destructive mt-1 text-lg leading-none"
-              >
-                ×
-              </button>
+
+        <DndContext
+          sensors={expSensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleExpDragEnd}
+        >
+          <SortableContext
+            items={expFields.map((f) => f.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {expFields.map((field, i) => {
+                const isPresent = expValues?.[i]?.isPresent ?? false;
+                return (
+                  <SortableItem key={field.id} id={field.id}>
+                    {(handleProps) => (
+                      <div className="border-border space-y-3 rounded-lg border p-4">
+                        <div className="flex items-start gap-2">
+                          <button
+                            type="button"
+                            {...handleProps}
+                            className="text-muted-foreground mt-1 cursor-grab touch-none text-lg leading-none select-none"
+                            aria-label="Drag to reorder"
+                          >
+                            ⠿
+                          </button>
+                          <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                            <Field
+                              label="Company"
+                              error={
+                                (
+                                  errors.experiences?.[i]?.company as
+                                    | { message?: string }
+                                    | undefined
+                                )?.message
+                              }
+                            >
+                              <input
+                                {...register(`experiences.${i}.company`)}
+                                className={inputCls(!!errors.experiences?.[i]?.company)}
+                                placeholder="Acme Corp"
+                              />
+                            </Field>
+                            <Field
+                              label="Role"
+                              error={
+                                (errors.experiences?.[i]?.role as { message?: string } | undefined)
+                                  ?.message
+                              }
+                            >
+                              <input
+                                {...register(`experiences.${i}.role`)}
+                                className={inputCls(!!errors.experiences?.[i]?.role)}
+                                placeholder="Senior Tutor"
+                              />
+                            </Field>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Field label="Start year">
+                                <input
+                                  {...register(`experiences.${i}.startYear`, {
+                                    valueAsNumber: true,
+                                  })}
+                                  type="number"
+                                  className={inputCls()}
+                                  placeholder="2018"
+                                />
+                              </Field>
+                              {!isPresent && (
+                                <Field label="End year">
+                                  <input
+                                    {...register(`experiences.${i}.endYear`, {
+                                      valueAsNumber: true,
+                                    })}
+                                    type="number"
+                                    className={inputCls()}
+                                    placeholder="2022"
+                                  />
+                                </Field>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 pt-1">
+                              <input
+                                id={`exp-present-${field.id}`}
+                                type="checkbox"
+                                {...register(`experiences.${i}.isPresent`)}
+                                className="accent-primary h-4 w-4"
+                              />
+                              <label htmlFor={`exp-present-${field.id}`} className="text-sm">
+                                Currently working here
+                              </label>
+                            </div>
+                            <Field label="Description" hint="Optional">
+                              <textarea
+                                {...register(`experiences.${i}.description`)}
+                                rows={2}
+                                className={inputCls()}
+                                placeholder="Brief description of your role"
+                              />
+                            </Field>
+                          </div>
+                          <div className="mt-1 flex flex-col items-center">
+                            {expDeleteConfirm === i ? (
+                              <div className="border-border flex items-center gap-1 rounded-lg border px-2 py-1 text-xs">
+                                <span className="text-muted-foreground">Sure?</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setExpDeleteConfirm(null)}
+                                  className="hover:text-foreground text-muted-foreground"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    removeExp(i);
+                                    setExpDeleteConfirm(null);
+                                  }}
+                                  className="text-destructive font-medium"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setExpDeleteConfirm(i)}
+                                className="text-muted-foreground hover:text-destructive text-lg leading-none"
+                                aria-label="Remove experience entry"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </SortableItem>
+                );
+              })}
             </div>
-          </div>
-        ))}
+          </SortableContext>
+        </DndContext>
       </div>
 
       <div className="flex justify-between">
@@ -702,6 +1100,110 @@ function Step4({
 
 // ─── Step 5: Certificates ─────────────────────────────────────────────────
 
+type CertUploadState = 'idle' | 'uploading' | 'done' | 'error';
+
+function CertFileUpload({
+  index,
+  fileUrl,
+  onFileUrl,
+}: {
+  index: number;
+  fileUrl: string | null | undefined;
+  onFileUrl: (url: string | null) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadState, setUploadState] = useState<CertUploadState>('idle');
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadState('uploading');
+    setUploadError(null);
+    setFileName(file.name);
+
+    const result = await requestCertificateUploadUrl(file.type);
+    if (!result.success) {
+      setUploadState('error');
+      setUploadError(result.error);
+      return;
+    }
+
+    try {
+      const res = await fetch(result.data.uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type },
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      setUploadState('done');
+      onFileUrl(result.data.publicUrl);
+    } catch {
+      setUploadState('error');
+      setUploadError('Upload failed. Please try again.');
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function handleRemove() {
+    setUploadState('idle');
+    setFileName(null);
+    setUploadError(null);
+    onFileUrl(null);
+  }
+
+  const existingUrl = fileUrl;
+
+  return (
+    <div className="space-y-1">
+      <input
+        ref={fileInputRef}
+        id={`cert-file-${index}`}
+        type="file"
+        accept=".pdf,image/*"
+        className="sr-only"
+        aria-label="Upload certificate file"
+        onChange={handleFileChange}
+      />
+      {existingUrl && uploadState !== 'uploading' ? (
+        <div className="flex items-center gap-2 text-sm">
+          <a
+            href={existingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline"
+          >
+            {fileName ?? 'Uploaded file'}
+          </a>
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="text-muted-foreground hover:text-destructive text-xs"
+          >
+            Remove
+          </button>
+        </div>
+      ) : uploadState === 'uploading' ? (
+        <p className="text-muted-foreground text-sm">Uploading…</p>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Upload file (PDF/image)
+        </Button>
+      )}
+      {uploadState === 'error' && uploadError && (
+        <p className="text-destructive text-xs">{uploadError}</p>
+      )}
+    </div>
+  );
+}
+
 function Step5({
   initial,
   onNext,
@@ -712,10 +1214,14 @@ function Step5({
   onBack: () => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
   const {
     register,
     handleSubmit,
     control,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<Step5Input>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -726,13 +1232,29 @@ function Step5({
           ? initial.certificates.map((c) => ({
               title: c.title,
               issuer: c.issuer ?? '',
-              issuedAt: c.issuedAt ? toDateInputValue(new Date(c.issuedAt)) : '',
+              issuedAt: c.issuedAt ? toDateInputValue(new Date(c.issuedAt)) : null,
+              fileUrl: c.fileUrl ?? null,
             }))
           : [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'certificates' });
+  const { fields, append, remove, move } = useFieldArray({ control, name: 'certificates' });
+  const certValues = watch('certificates');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex((f) => f.id === active.id);
+      const newIndex = fields.findIndex((f) => f.id === over.id);
+      move(oldIndex, newIndex);
+    }
+  }
 
   async function onSubmit(data: Step5Input) {
     setServerError(null);
@@ -746,6 +1268,7 @@ function Step5({
         title: c.title,
         issuer: c.issuer ?? null,
         issuedAt: c.issuedAt ? new Date(c.issuedAt) : null,
+        fileUrl: c.fileUrl ?? null,
       })),
     });
   }
@@ -765,56 +1288,114 @@ function Step5({
         </p>
       )}
 
-      <div className="space-y-3">
-        {fields.map((field, i) => (
-          <div key={field.id} className="border-border space-y-3 rounded-lg border p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="grid flex-1 gap-3 sm:grid-cols-2">
-                <Field
-                  label="Certificate title"
-                  error={
-                    (errors.certificates?.[i]?.title as { message?: string } | undefined)?.message
-                  }
-                >
-                  <input
-                    {...register(`certificates.${i}.title`)}
-                    className={inputCls(!!errors.certificates?.[i]?.title)}
-                    placeholder="IELTS Certificate"
-                  />
-                </Field>
-                <Field label="Issuing organisation">
-                  <input
-                    {...register(`certificates.${i}.issuer`)}
-                    className={inputCls()}
-                    placeholder="British Council"
-                  />
-                </Field>
-                <Field label="Issue date">
-                  <input
-                    {...register(`certificates.${i}.issuedAt`)}
-                    type="date"
-                    className={inputCls()}
-                  />
-                </Field>
-              </div>
-              <button
-                type="button"
-                onClick={() => remove(i)}
-                className="text-muted-foreground hover:text-destructive mt-1 text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {fields.map((field, i) => (
+              <SortableItem key={field.id} id={field.id}>
+                {(handleProps) => (
+                  <div className="border-border space-y-3 rounded-lg border p-4">
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        {...handleProps}
+                        className="text-muted-foreground mt-1 cursor-grab touch-none text-lg leading-none select-none"
+                        aria-label="Drag to reorder"
+                      >
+                        ⠿
+                      </button>
+                      <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                        <Field
+                          label="Certificate title"
+                          error={
+                            (errors.certificates?.[i]?.title as { message?: string } | undefined)
+                              ?.message
+                          }
+                        >
+                          <input
+                            {...register(`certificates.${i}.title`)}
+                            className={inputCls(!!errors.certificates?.[i]?.title)}
+                            placeholder="IELTS Certificate"
+                          />
+                        </Field>
+                        <Field label="Issuing organisation">
+                          <input
+                            {...register(`certificates.${i}.issuer`)}
+                            className={inputCls()}
+                            placeholder="British Council"
+                          />
+                        </Field>
+                        <Field label="Issue date">
+                          <input
+                            {...register(`certificates.${i}.issuedAt`)}
+                            type="date"
+                            className={inputCls()}
+                          />
+                        </Field>
+                        <div className="space-y-1.5">
+                          <span className="text-sm font-medium">Certificate file</span>
+                          <CertFileUpload
+                            index={i}
+                            fileUrl={certValues?.[i]?.fileUrl}
+                            onFileUrl={(url) =>
+                              setValue(`certificates.${i}.fileUrl`, url, {
+                                shouldDirty: true,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-1 flex flex-col items-center">
+                        {deleteConfirm === i ? (
+                          <div className="border-border flex items-center gap-1 rounded-lg border px-2 py-1 text-xs">
+                            <span className="text-muted-foreground">Sure?</span>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirm(null)}
+                              className="hover:text-foreground text-muted-foreground"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                remove(i);
+                                setDeleteConfirm(null);
+                              }}
+                              className="text-destructive font-medium"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirm(i)}
+                            className="text-muted-foreground hover:text-destructive text-lg leading-none"
+                            aria-label="Remove certificate"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </SortableItem>
+            ))}
           </div>
-        ))}
+        </SortableContext>
+      </DndContext>
+
+      {fields.length < 20 && (
         <Button
           type="button"
           variant="outline"
-          onClick={() => append({ title: '', issuer: '', issuedAt: null })}
+          onClick={() => append({ title: '', issuer: '', issuedAt: null, fileUrl: null })}
         >
           + Add certificate
         </Button>
-      </div>
+      )}
 
       <div className="flex justify-between">
         <Button type="button" variant="outline" onClick={onBack}>
@@ -1030,7 +1611,7 @@ function UnderReviewBanner() {
 
 // ─── Main wizard ───────────────────────────────────────────────────────────
 
-export function OnboardingWizard({ initialData, categories }: WizardProps) {
+export function OnboardingWizard({ initialData, categories, commonSkills }: WizardProps) {
   const [wizardData, setWizardData] = useState<OnboardingData>(initialData);
   const isLocked = initialData.onboardingComplete && initialData.status !== 'REJECTED';
   const startStep = isLocked ? 6 : Math.min(Math.max(initialData.onboardingStep, 1), 6);
@@ -1075,6 +1656,7 @@ export function OnboardingWizard({ initialData, categories }: WizardProps) {
         <Step3
           initial={wizardData}
           categories={categories}
+          commonSkills={commonSkills}
           onNext={(patch) => advanceStep(patch)}
           onBack={() => setStep(2)}
         />

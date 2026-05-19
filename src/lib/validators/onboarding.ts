@@ -17,7 +17,7 @@ export const step3Schema = z.object({
   skills: z
     .array(z.string().trim().min(1).max(50))
     .min(1, 'Add at least one skill')
-    .max(20, 'You can add at most 20 skills'),
+    .max(30, 'You can add at most 30 skills'),
   categoryIds: z
     .array(z.string())
     .min(1, 'Select at least one category')
@@ -37,22 +37,24 @@ const experienceSchema = z.object({
   role: z.string().trim().min(1, 'Role is required'),
   startYear: z.number().int().min(1950).max(2030).nullable().optional(),
   endYear: z.number().int().min(1950).max(2030).nullable().optional(),
+  isPresent: z.boolean().optional(),
   description: z.string().trim().max(500).optional(),
 });
 
 export const step4Schema = z.object({
-  educations: z.array(educationSchema),
-  experiences: z.array(experienceSchema),
+  educations: z.array(educationSchema).max(10, 'You can add at most 10 education entries'),
+  experiences: z.array(experienceSchema).max(15, 'You can add at most 15 experience entries'),
 });
 
 const certificateSchema = z.object({
   title: z.string().trim().min(1, 'Certificate title is required'),
   issuer: z.string().trim().optional(),
   issuedAt: z.string().date().nullable().optional(),
+  fileUrl: z.string().url().nullable().optional(),
 });
 
 export const step5Schema = z.object({
-  certificates: z.array(certificateSchema),
+  certificates: z.array(certificateSchema).max(20, 'You can add at most 20 certificates'),
 });
 
 export type Step1Input = z.infer<typeof step1Schema>;
